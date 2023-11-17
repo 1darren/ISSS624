@@ -1,0 +1,15 @@
+---
+title: "ISSS624"
+---
+
+Welcome to ISSS624 Geospatial Analytics Applications!
+
+In this website, I am going to share with you my learning journey of Geospatial Analytics (under instruction from Prof Kam).
+
+VIdeo watched to:1342, right before modifying navbar in \_quarto.yml
+
+To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+
+```{r}
+1 + 1
+```
