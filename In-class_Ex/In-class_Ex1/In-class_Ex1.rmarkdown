@@ -1,0 +1,89 @@
+---
+title: "In-class Exercise 1: My First Date with Geospatial Data Analytics"
+date: "18 November 2023"
+date-modified: "last-modified"
+format: html
+execute:
+  echo: true
+  eval: true
+  warning: false
+editor: visual
+---
+
+
+## Getting Started - Import packages
+
+This function calls pacman to load sf, tidyverse, tmap packages; - tmap : For thematic mapping - sf : for geospatial data handling - tidyverse : for non-spatial data handling
+
+
+```{r}
+pacman::p_load(tmap, sf, tidyverse)
+```
+
+
+::: {.callout-note collapse="true"}
+### Additional Notes
+
+-   In the 'old days', the library-import would have been written thus:
+
+```         
+library(tmap)
+library(sf)
+library(tidyverse)
+```
+:::
+
+## Preparing the Flow Data
+
+### Importing the Origin/Destination (O/D) Data
+
+Firstly, we will import the *Passenger volume by Origin/Destination Bus Stops* dataset downloaded by LTA Datamall by using `read_csv()` of **readr** package.
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+odbus <- read_csv("data/aspatial/origin_destination_bus_202308.csv")
+  
+```
+
+
+::: {.callout-note collapse="true"}
+### LearneR notes
+
+-   NB: Here, we use relative paths, which is helpful for Rstudio, HTML rendering etc
+    -   This works because current file ("In-class_Ex1.qmd") is in the same subdirectory level as /data file
+    -   In the "Olde Style", we would specify data directories
+- In "Environment" window, clicking white triangle beside ODBUS gives an .info() of the `odbus` dataframe
+:::
+
+## Extracting the Study Data
+
+## Working with Geospatial Data
+
+## Importing Geospatial Data
+
+## Geospatial Data Wrangling
+
+## Combining Bus Stop & MPSZ
+
+## Visualizing the Geospatial Data
+
+## Viewing the Subzone Spatial File
+
+## Personal Notes
+
+### ODBus Structure
+
+-   7 columns;
+
+-   time_per_hour: hour of travel
+
+-   origin_pt_code, destination_pt_code: per bus-trip; change-bus counted as 2 trips
+
+-   total_trips: number of passengers moving between startpoint/endpoint, during that hour
+
+-   **Issue:** no explicit location, only bus stop code; can we reconcile bus-stop-code with geospatial data?
+
+-   yes:
+

@@ -10,28 +10,61 @@ execute:
 editor: visual
 ---
 
-## Getting Started
+## Getting Started - Import packages
+
+This function calls pacman to load sf, tidyverse, tmap packages; - tmap : For thematic mapping - sf : for geospatial data handling - tidyverse : for non-spatial data handling
+
+```{r}
+pacman::p_load(tmap, sf, tidyverse)
+```
+
+::: {.callout-note collapse="true"}
+### Additional Notes
+
+-   In the 'old days', the library-import would have been written thus:
+
+```         
+library(tmap)
+library(sf)
+library(tidyverse)
+```
+:::
+
+## Preparing the Flow Data
+
+### Importing the Origin/Destination (O/D) Data
+
+Firstly, we will import the *Passenger volume by Origin/Destination Bus Stops* dataset downloaded by LTA Datamall by using `read_csv()` of **readr** package.
 
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
-pacman::p_load(sf, tidyverse)
+odbus <- read_csv("data/aspatial/origin_destination_bus_202308.csv")
+  
 ```
 
-## Preparing the Flow Data
-## Importing the OD Data
+::: {.callout-note collapse="true"}
+### LearneR notes
+
+-   NB: Here, we use relative paths, which is helpful for Rstudio, HTML rendering etc
+    -   This works because current file ("In-class_Ex1.qmd") is in the same subdirectory level as /data file
+    -   In the "Olde Style", we would specify data directories
+- In "Environment" window, clicking white triangle beside ODBUS gives an .info() of the `odbus` dataframe
+:::
+
 ## Extracting the Study Data
 
 ## Working with Geospatial Data
+
 ## Importing Geospatial Data
+
 ## Geospatial Data Wrangling
 
-## Combining Bus Stop & MPSZ 
+## Combining Bus Stop & MPSZ
+
 ## Visualizing the Geospatial Data
-## Viewing the Subzone Spatial File 
 
-
-
+## Viewing the Subzone Spatial File
 
 ## Personal Notes
 

@@ -67,7 +67,7 @@
     "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html",
     "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
     "section": "",
-    "text": "Show the code\npacman::p_load(sf, tidyverse)"
+    "text": "This function calls pacman to load sf, tidyverse, tmap packages; - tmap : For thematic mapping - sf : for geospatial data handling - tidyverse : for non-spatial data handling\n\npacman::p_load(tmap, sf, tidyverse)\n\n\n\n\n\n\n\nAdditional Notes\n\n\n\n\n\n\nIn the ‘old days’, the library-import would have been written thus:\n\nlibrary(tmap)\nlibrary(sf)\nlibrary(tidyverse)"
   },
   {
     "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#notes",
@@ -95,7 +95,7 @@
     "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#preparing-the-flow-data",
     "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
     "section": "Preparing the Flow Data",
-    "text": "Preparing the Flow Data"
+    "text": "Preparing the Flow Data\n\nImporting the Origin/Destination (O/D) Data\nFirstly, we will import the Passenger volume by Origin/Destination Bus Stops dataset downloaded by LTA Datamall by using read_csv() of readr package.\n\n\nShow the code\nodbus &lt;- read_csv(\"data/aspatial/origin_destination_bus_202308.csv\")\n\n\n\n\n\n\n\n\nLearneR notes\n\n\n\n\n\n\nNB: Here, we use relative paths, which is helpful for Rstudio, HTML rendering etc\n\nThis works because current file (“In-class_Ex1.qmd”) is in the same subdirectory level as /data file\nIn the “Olde Style”, we would specify data directories\n\nIn “Environment” window, clicking white triangle beside ODBUS gives an .info()"
   },
   {
     "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#importing-the-od-data",
@@ -159,5 +159,12 @@
     "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
     "section": "Personal Notes",
     "text": "Personal Notes\n\nODBus Structure\n\n7 columns;\ntime_per_hour: hour of travel\norigin_pt_code, destination_pt_code: per bus-trip; change-bus counted as 2 trips\ntotal_trips: number of passengers moving between startpoint/endpoint, during that hour\nIssue: no explicit location, only bus stop code; can we reconcile bus-stop-code with geospatial data?\nyes:"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#getting-started---import-packages",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#getting-started---import-packages",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "",
+    "text": "This function calls pacman to load sf, tidyverse, tmap packages; - tmap : For thematic mapping - sf : for geospatial data handling - tidyverse : for non-spatial data handling\n\npacman::p_load(tmap, sf, tidyverse)\n\n\n\n\n\n\n\nAdditional Notes\n\n\n\n\n\n\nIn the ‘old days’, the library-import would have been written thus:\n\nlibrary(tmap)\nlibrary(sf)\nlibrary(tidyverse)"
   }
 ]

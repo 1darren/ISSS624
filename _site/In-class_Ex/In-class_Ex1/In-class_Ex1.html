@@ -162,9 +162,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#getting-started" id="toc-getting-started" class="nav-link active" data-scroll-target="#getting-started">Getting Started</a></li>
-  <li><a href="#preparing-the-flow-data" id="toc-preparing-the-flow-data" class="nav-link" data-scroll-target="#preparing-the-flow-data">Preparing the Flow Data</a></li>
-  <li><a href="#importing-the-od-data" id="toc-importing-the-od-data" class="nav-link" data-scroll-target="#importing-the-od-data">Importing the OD Data</a></li>
+  <li><a href="#getting-started---import-packages" id="toc-getting-started---import-packages" class="nav-link active" data-scroll-target="#getting-started---import-packages">Getting Started - Import packages</a></li>
+  <li><a href="#preparing-the-flow-data" id="toc-preparing-the-flow-data" class="nav-link" data-scroll-target="#preparing-the-flow-data">Preparing the Flow Data</a>
+  <ul class="collapse">
+  <li><a href="#importing-the-origindestination-od-data" id="toc-importing-the-origindestination-od-data" class="nav-link" data-scroll-target="#importing-the-origindestination-od-data">Importing the Origin/Destination (O/D) Data</a></li>
+  </ul></li>
   <li><a href="#extracting-the-study-data" id="toc-extracting-the-study-data" class="nav-link" data-scroll-target="#extracting-the-study-data">Extracting the Study Data</a></li>
   <li><a href="#working-with-geospatial-data" id="toc-working-with-geospatial-data" class="nav-link" data-scroll-target="#working-with-geospatial-data">Working with Geospatial Data</a></li>
   <li><a href="#importing-geospatial-data" id="toc-importing-geospatial-data" class="nav-link" data-scroll-target="#importing-geospatial-data">Importing Geospatial Data</a></li>
@@ -211,20 +213,69 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 </header>
 
-<section id="getting-started" class="level2">
-<h2 class="anchored" data-anchor-id="getting-started">Getting Started</h2>
+<section id="getting-started---import-packages" class="level2">
+<h2 class="anchored" data-anchor-id="getting-started---import-packages">Getting Started - Import packages</h2>
+<p>This function calls pacman to load sf, tidyverse, tmap packages; - tmap : For thematic mapping - sf : for geospatial data handling - tidyverse : for non-spatial data handling</p>
 <div class="cell">
-<details>
-<summary>Show the code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(tmap, sf, tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Additional Notes
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<ul>
+<li>In the ‘old days’, the library-import would have been written thus:</li>
+</ul>
+<pre><code>library(tmap)
+library(sf)
+library(tidyverse)</code></pre>
+</div>
+</div>
 </div>
 </section>
 <section id="preparing-the-flow-data" class="level2">
 <h2 class="anchored" data-anchor-id="preparing-the-flow-data">Preparing the Flow Data</h2>
+<section id="importing-the-origindestination-od-data" class="level3">
+<h3 class="anchored" data-anchor-id="importing-the-origindestination-od-data">Importing the Origin/Destination (O/D) Data</h3>
+<p>Firstly, we will import the <em>Passenger volume by Origin/Destination Bus Stops</em> dataset downloaded by LTA Datamall by using <code>read_csv()</code> of <strong>readr</strong> package.</p>
+<div class="cell">
+<details>
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>odbus <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/aspatial/origin_destination_bus_202308.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+LearneR notes
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<ul>
+<li>NB: Here, we use relative paths, which is helpful for Rstudio, HTML rendering etc
+<ul>
+<li>This works because current file (“In-class_Ex1.qmd”) is in the same subdirectory level as /data file</li>
+<li>In the “Olde Style”, we would specify data directories</li>
+</ul></li>
+<li>In “Environment” window, clicking white triangle beside ODBUS gives an .info()</li>
+</ul>
+</div>
+</div>
+</div>
 </section>
-<section id="importing-the-od-data" class="level2">
-<h2 class="anchored" data-anchor-id="importing-the-od-data">Importing the OD Data</h2>
 </section>
 <section id="extracting-the-study-data" class="level2">
 <h2 class="anchored" data-anchor-id="extracting-the-study-data">Extracting the Study Data</h2>
