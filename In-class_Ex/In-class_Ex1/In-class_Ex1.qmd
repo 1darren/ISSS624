@@ -1,0 +1,22 @@
+---
+title: "In-class Exercise 1: My First Date with Geospatial Data Analytics"
+date: "18 November 2023"
+date-modified: last-modified
+editor: visual
+---
+
+## Notes
+
+### ODBus Structure
+
+-   7 columns;
+
+-   time_per_hour: hour of travel
+
+-   origin_pt_code, destination_pt_code: per bus-trip; change-bus counted as 2 trips
+
+-   total_trips: number of passengers moving between startpoint/endpoint, during that hour
+
+-   **Issue:** no explicit location, only bus stop code; can we reconcile bus-stop-code with geospatial data?
+
+-   yes:
