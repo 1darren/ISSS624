@@ -15,9 +15,9 @@ website:
             href: In-class_Ex/In-class_Ex1/In-class_Ex01.html
 
     right:
-      - href: index.qmd
+      - href: index.html
         text: Home
-      - about.qmd
+      - about.html
 
 format:
   html:
