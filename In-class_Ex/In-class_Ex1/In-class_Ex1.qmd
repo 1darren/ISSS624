@@ -72,17 +72,20 @@ origtrip_7_9 <- odbus %>%
   filter(TIME_PER_HOUR >= 7 & TIME_PER_HOUR <= 9)  %>% 
   group_by(ORIGIN_PT_CODE)  %>% 
   summarise(TRIPS = sum(TOTAL_TRIPS))
+origtrip_7_9
 ```
 
 ::: {.callout-note collapse="true"}
 ### LearneR notes
 
 -   `%>%` Pipe function; chains together several operations in sequence to allow for multi-filter
-    - Code filters from odbus to ...
-    1. Filter by `WEEKDAY`
-    2. `TIME_PER_HOUR` between 7 to 9 inclusive (eg 0700 to 0959)
-    3. Creates a table, grouped by `ORIGIN_PT_CODE`...
-    4. ...with a fourth summary column, `TRIPS`, created as a sum of `TOTAL_TRIPS`
+
+    -   Code filters from odbus to ...
+
+    1.  Filter by `WEEKDAY`
+    2.  `TIME_PER_HOUR` between 7 to 9 inclusive (eg 0700 to 0959)
+    3.  Creates a table, grouped by `ORIGIN_PT_CODE`...
+    4.  ...with a fourth summary column, `TRIPS`, created as a sum of `TOTAL_TRIPS`
 :::
 
 ## Extracting the Study Data
@@ -96,16 +99,15 @@ mpsz <- st_read(dsn = "data/geospatial",
   st_transform(crs = 3414)
 ```
 
-- `BUSSTOP$GEOMETRY`: Binary Large Object Field; defines coordinate for each bus-stop
-    - Typical cell of dataframe is either INT or CHAR
-    - BLOF allows to store a list; POINT(lat, long) 
-- `MPSZ$GEOMETRY`is instead a multipolygon; a list of 300 x 2 coordinates
-- IMPORTANT: There are two different coordinates system;
-    - Most GML, KML, data.gov are in wgs84, decimal degree data format
-    - We should change to svy21
-    - CRS: coordinate system of Singapore; cahnge to metres
-- Now we can join odbus (bus stop code) and busstop (coordinates) and also master plan subzone (mpsz)
-## Working with Geospatial Data
+-   `BUSSTOP$GEOMETRY`: Binary Large Object Field; defines coordinate for each bus-stop
+    -   Typical cell of dataframe is either INT or CHAR
+    -   BLOF allows to store a list; POINT(lat, long)
+-   `MPSZ$GEOMETRY`is instead a multipolygon; a list of 300 x 2 coordinates
+-   IMPORTANT: There are two different coordinates system;
+    -   Most GML, KML, data.gov are in wgs84, decimal degree data format
+    -   We should change to svy21
+    -   CRS: coordinate system of Singapore; cahnge to metres
+-   Now we can join odbus (bus stop code) and busstop (coordinates) and also master plan subzone (mpsz) \## Working with Geospatial Data
 
 ## Importing Geospatial Data
 

@@ -306,7 +306,24 @@ LearneR notes
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(DAY_TYPE <span class="sc">==</span> <span class="st">"WEEKDAY"</span>)  <span class="sc">%&gt;%</span> </span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(TIME_PER_HOUR <span class="sc">&gt;=</span> <span class="dv">7</span> <span class="sc">&amp;</span> TIME_PER_HOUR <span class="sc">&lt;=</span> <span class="dv">9</span>)  <span class="sc">%&gt;%</span> </span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ORIGIN_PT_CODE)  <span class="sc">%&gt;%</span> </span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">TRIPS =</span> <span class="fu">sum</span>(TOTAL_TRIPS))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">TRIPS =</span> <span class="fu">sum</span>(TOTAL_TRIPS))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>origtrip_7_9</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5,015 × 2
+   ORIGIN_PT_CODE TRIPS
+   &lt;fct&gt;          &lt;dbl&gt;
+ 1 01012           1617
+ 2 01013            813
+ 3 01019           1620
+ 4 01029           2383
+ 5 01039           2727
+ 6 01059           1415
+ 7 01109            115
+ 8 01112           7675
+ 9 01113           8074
+10 01119           3913
+# ℹ 5,005 more rows</code></pre>
+</div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-4-contents" aria-controls="callout-4" aria-expanded="false" aria-label="Toggle callout">
@@ -321,7 +338,7 @@ LearneR notes
 <div id="callout-4" class="callout-4-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <ul>
-<li><code>%&gt;%</code> Pipe function; chains together several operations in sequence to allow for multi-filter
+<li><p><code>%&gt;%</code> Pipe function; chains together several operations in sequence to allow for multi-filter</p>
 <ul>
 <li>Code filters from odbus to …</li>
 </ul>
@@ -340,9 +357,9 @@ LearneR notes
 <section id="extracting-the-study-data" class="level2">
 <h2 class="anchored" data-anchor-id="extracting-the-study-data">Extracting the Study Data</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>busstop <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/geospatial"</span>, </span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">layer =</span> <span class="st">"BusStop"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>busstop <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/geospatial"</span>, </span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">layer =</span> <span class="st">"BusStop"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Reading layer `BusStop' from data source 
   `C:\1darren\ISSS624\In-class_Ex\In-class_Ex1\data\geospatial' 
@@ -353,9 +370,9 @@ Dimension:     XY
 Bounding box:  xmin: 3970.122 ymin: 26482.1 xmax: 48284.56 ymax: 52983.82
 Projected CRS: SVY21</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>mpsz <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/geospatial"</span>, </span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">layer =</span> <span class="st">"MPSZ-2019"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>mpsz <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/geospatial"</span>, </span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">layer =</span> <span class="st">"MPSZ-2019"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Reading layer `MPSZ-2019' from data source 
   `C:\1darren\ISSS624\In-class_Ex\In-class_Ex1\data\geospatial' 
