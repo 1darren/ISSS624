@@ -67,7 +67,7 @@
     "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html",
     "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
     "section": "",
-    "text": "7 columns;\ntime_per_hour: hour of travel\norigin_pt_code, destination_pt_code: per bus-trip; change-bus counted as 2 trips\ntotal_trips: number of passengers moving between startpoint/endpoint, during that hour\nIssue: no explicit location, only bus stop code; can we reconcile bus-stop-code with geospatial data?\nyes:"
+    "text": "Show the code\npacman::p_load(sf, tidyverse)"
   },
   {
     "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#notes",
@@ -82,5 +82,82 @@
     "title": "ISSS624",
     "section": "",
     "text": "&lt;!DOCTYPE qgis PUBLIC ‘http://mrcc.com/qgis.dtd’ ‘SYSTEM’&gt;     dataset\n\n\n        0 0     false"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#getting-started",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#getting-started",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "",
+    "text": "Show the code\npacman::p_load(sf, tidyverse)"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#preparing-the-flow-data",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#preparing-the-flow-data",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Preparing the Flow Data",
+    "text": "Preparing the Flow Data"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#importing-the-od-data",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#importing-the-od-data",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Importing the OD Data",
+    "text": "Importing the OD Data"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#extracting-the-study-data",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#extracting-the-study-data",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Extracting the Study Data",
+    "text": "Extracting the Study Data"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#working-with-geospatial-data",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#working-with-geospatial-data",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Working with Geospatial Data",
+    "text": "Working with Geospatial Data"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#importing-geospatial-data",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#importing-geospatial-data",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Importing Geospatial Data",
+    "text": "Importing Geospatial Data"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#geospatial-data-wrangling",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#geospatial-data-wrangling",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Geospatial Data Wrangling",
+    "text": "Geospatial Data Wrangling"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#combining-bus-stop-mpsz",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#combining-bus-stop-mpsz",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Combining Bus Stop & MPSZ",
+    "text": "Combining Bus Stop & MPSZ"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#visualizing-the-geospatial-data",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#visualizing-the-geospatial-data",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Visualizing the Geospatial Data",
+    "text": "Visualizing the Geospatial Data"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#viewing-the-subzone-spatial-file",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#viewing-the-subzone-spatial-file",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Viewing the Subzone Spatial File",
+    "text": "Viewing the Subzone Spatial File"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#personal-notes",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#personal-notes",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Personal Notes",
+    "text": "Personal Notes\n\nODBus Structure\n\n7 columns;\ntime_per_hour: hour of travel\norigin_pt_code, destination_pt_code: per bus-trip; change-bus counted as 2 trips\ntotal_trips: number of passengers moving between startpoint/endpoint, during that hour\nIssue: no explicit location, only bus stop code; can we reconcile bus-stop-code with geospatial data?\nyes:"
   }
 ]

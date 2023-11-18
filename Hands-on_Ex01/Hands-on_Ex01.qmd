@@ -28,12 +28,14 @@ mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_WEB_PL")
 ```{r}
 cyclingpath <- st_read(dsn = "data/geospatial", layer = "CyclingPathGazette")
 ```
+
 ### Importing GIS data in kml format
 
 ```{r}
 preschool = st_read("data/geospatial/pre-schools-location-kml.kml")
 ```
-### 1.5  st_geometry(); glimpse(); head()
+
+### 1.5 st_geometry(); glimpse(); head()
 
 ```{r}
 st_geometry(mpsz)
@@ -42,10 +44,10 @@ st_geometry(mpsz)
 ```{r}
 glimpse(mpsz)
 ```
+
 ```{r}
 head(mpsz, n=5)
 ```
-
 
 ### 1.6 plot()
 
@@ -67,7 +69,6 @@ plot(mpsz["PLN_AREA_N"])
 st_crs(mpsz)
 ```
 
-
 ```{r}
 mpsz3414 <- st_set_crs(mpsz, 3414)
 st_crs(mpsz3414)
@@ -79,13 +80,13 @@ preschool3414 <- st_transform(preschool, crs=3414)
 st_crs(preschool3414)
 ```
 
-
 ### 1.8
 
 ```{r}
 listings <- read_csv("data/aspatial/listings.csv")
 list(listings)
 ```
+
 ```{r}
 glimpse(listings)
 ```
@@ -95,6 +96,7 @@ listings_sf <- st_as_sf(listings, coords = c("longitude", "latitude"), crs=4326)
 st_transform(crs = 3414)
 glimpse(listings_sf)
 ```
+
 ### 1.9
 
 ```{r}
@@ -122,14 +124,11 @@ mpsz3414 <- mpsz3414 %>%
   mutate(`PreSch Density` = `PreSch Count`/Area * 1000000)
 ```
 
-
 ### 1.10
 
 ```{r}
 hist(mpsz3414$`PreSch Density`)
 ```
-
-
 
 ```{r}
 ggplot(data=mpsz3414, 
@@ -156,9 +155,11 @@ ggplot(data=mpsz3414,
       y = "Pre-school count")
 
 ```
+
 ```{r}
 
 ```
+
 ```{r}
 
 ```

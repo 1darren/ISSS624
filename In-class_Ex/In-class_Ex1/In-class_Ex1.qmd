@@ -18,9 +18,18 @@ editor: visual
 pacman::p_load(sf, tidyverse)
 ```
 
-### Preparing the Flow Data
-### Importing the OD Data
-### Extracting the Study Data
+## Preparing the Flow Data
+## Importing the OD Data
+## Extracting the Study Data
+
+## Working with Geospatial Data
+## Importing Geospatial Data
+## Geospatial Data Wrangling
+
+## Combining Bus Stop & MPSZ 
+## Visualizing the Geospatial Data
+## Viewing the Subzone Spatial File 
+
 
 
 

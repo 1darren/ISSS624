@@ -21,6 +21,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -128,7 +162,17 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#notes" id="toc-notes" class="nav-link active" data-scroll-target="#notes">Notes</a>
+  <li><a href="#getting-started" id="toc-getting-started" class="nav-link active" data-scroll-target="#getting-started">Getting Started</a></li>
+  <li><a href="#preparing-the-flow-data" id="toc-preparing-the-flow-data" class="nav-link" data-scroll-target="#preparing-the-flow-data">Preparing the Flow Data</a></li>
+  <li><a href="#importing-the-od-data" id="toc-importing-the-od-data" class="nav-link" data-scroll-target="#importing-the-od-data">Importing the OD Data</a></li>
+  <li><a href="#extracting-the-study-data" id="toc-extracting-the-study-data" class="nav-link" data-scroll-target="#extracting-the-study-data">Extracting the Study Data</a></li>
+  <li><a href="#working-with-geospatial-data" id="toc-working-with-geospatial-data" class="nav-link" data-scroll-target="#working-with-geospatial-data">Working with Geospatial Data</a></li>
+  <li><a href="#importing-geospatial-data" id="toc-importing-geospatial-data" class="nav-link" data-scroll-target="#importing-geospatial-data">Importing Geospatial Data</a></li>
+  <li><a href="#geospatial-data-wrangling" id="toc-geospatial-data-wrangling" class="nav-link" data-scroll-target="#geospatial-data-wrangling">Geospatial Data Wrangling</a></li>
+  <li><a href="#combining-bus-stop-mpsz" id="toc-combining-bus-stop-mpsz" class="nav-link" data-scroll-target="#combining-bus-stop-mpsz">Combining Bus Stop &amp; MPSZ</a></li>
+  <li><a href="#visualizing-the-geospatial-data" id="toc-visualizing-the-geospatial-data" class="nav-link" data-scroll-target="#visualizing-the-geospatial-data">Visualizing the Geospatial Data</a></li>
+  <li><a href="#viewing-the-subzone-spatial-file" id="toc-viewing-the-subzone-spatial-file" class="nav-link" data-scroll-target="#viewing-the-subzone-spatial-file">Viewing the Subzone Spatial File</a></li>
+  <li><a href="#personal-notes" id="toc-personal-notes" class="nav-link" data-scroll-target="#personal-notes">Personal Notes</a>
   <ul class="collapse">
   <li><a href="#odbus-structure" id="toc-odbus-structure" class="nav-link" data-scroll-target="#odbus-structure">ODBus Structure</a></li>
   </ul></li>
@@ -167,8 +211,44 @@ ul.task-list li input[type="checkbox"] {
 
 </header>
 
-<section id="notes" class="level2">
-<h2 class="anchored" data-anchor-id="notes">Notes</h2>
+<section id="getting-started" class="level2">
+<h2 class="anchored" data-anchor-id="getting-started">Getting Started</h2>
+<div class="cell">
+<details>
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="preparing-the-flow-data" class="level2">
+<h2 class="anchored" data-anchor-id="preparing-the-flow-data">Preparing the Flow Data</h2>
+</section>
+<section id="importing-the-od-data" class="level2">
+<h2 class="anchored" data-anchor-id="importing-the-od-data">Importing the OD Data</h2>
+</section>
+<section id="extracting-the-study-data" class="level2">
+<h2 class="anchored" data-anchor-id="extracting-the-study-data">Extracting the Study Data</h2>
+</section>
+<section id="working-with-geospatial-data" class="level2">
+<h2 class="anchored" data-anchor-id="working-with-geospatial-data">Working with Geospatial Data</h2>
+</section>
+<section id="importing-geospatial-data" class="level2">
+<h2 class="anchored" data-anchor-id="importing-geospatial-data">Importing Geospatial Data</h2>
+</section>
+<section id="geospatial-data-wrangling" class="level2">
+<h2 class="anchored" data-anchor-id="geospatial-data-wrangling">Geospatial Data Wrangling</h2>
+</section>
+<section id="combining-bus-stop-mpsz" class="level2">
+<h2 class="anchored" data-anchor-id="combining-bus-stop-mpsz">Combining Bus Stop &amp; MPSZ</h2>
+</section>
+<section id="visualizing-the-geospatial-data" class="level2">
+<h2 class="anchored" data-anchor-id="visualizing-the-geospatial-data">Visualizing the Geospatial Data</h2>
+</section>
+<section id="viewing-the-subzone-spatial-file" class="level2">
+<h2 class="anchored" data-anchor-id="viewing-the-subzone-spatial-file">Viewing the Subzone Spatial File</h2>
+</section>
+<section id="personal-notes" class="level2">
+<h2 class="anchored" data-anchor-id="personal-notes">Personal Notes</h2>
 <section id="odbus-structure" class="level3">
 <h3 class="anchored" data-anchor-id="odbus-structure">ODBus Structure</h3>
 <ul>
