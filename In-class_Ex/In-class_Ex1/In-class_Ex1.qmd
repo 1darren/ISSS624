@@ -1,11 +1,30 @@
 ---
 title: "In-class Exercise 1: My First Date with Geospatial Data Analytics"
 date: "18 November 2023"
-date-modified: last-modified
+date-modified: "last-modified"
+format: html
+execute:
+  echo: true
+  eval: true
+  warning: false
 editor: visual
 ---
 
-## Notes
+## Getting Started
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+pacman::p_load(sf, tidyverse)
+```
+
+### Preparing the Flow Data
+### Importing the OD Data
+### Extracting the Study Data
+
+
+
+## Personal Notes
 
 ### ODBus Structure
 
