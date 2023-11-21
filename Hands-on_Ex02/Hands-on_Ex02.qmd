@@ -3,60 +3,47 @@ title: "Hands-on Exercise 2: Spatial Weights & Spatial Autocorrelation"
 editor: visual
 ---
 
-On this page, I address Hands-On Exercise for Chapter 01 - Geospatial Data Wrangling and Chloropleth Mapping
+On this page, I address Hands-On Exercise for Chapter 02 - **Spatial Weights and Applications**
 
-# 1. Geospatial Data Wrangling with R
+# 1. Spatial Weights & Applications
 
-## 1.1 Outcomes:
+## 1.2 Import `Hunan` Shapefile datasets
 
-In this hands-on exercise, I learn how to import and wrangle geospatial data using appropriate R packages.
+### 1.1.1 Geospatial Data Sets
 
-## 1.2 Data Structure:
-
-Files loaded into /data file as per below:
-
-### 1.2.1 Geospatial Data Sets
-
-`/data/geospatial/`
-
--   Master Plan Subzone Boundary 2014 data
-
--   Cycling Path locations from LTA DataMall
-
--   Preschool locations from data.gov.sg
-
-![](geospatial_files.jpg)
+-   `/data/geospatial/Hunan.###`: This is a geospatial data set in ESRI shapefile format.
 
 ### 1.2.2 Aspatial Data Sets
 
-`/data/aspatial/`
+-   `/data/aspatial/Hunan_2012.csv`: This csv file contains selected Hunan's local development indicators in 2012.
 
--   AirBnb listings for Singapore
-
-![](aspatial_files.jpg)
-
-## 1.3 Getting Started
-
-The code chunk below installs and loads sf and tidyverse packages into R environment:
+## 1.3 Import packages & files
 
 ```{r}
-pacman::p_load(sf, tidyverse)
+pacman::p_load(sf, spdep, tmap, tidyverse, knitr)
 ```
 
-## 1.4 Importing Geospatial Data
+```{r}
+hunan <- st_read(dsn = "data/geospatial", 
+                 layer = "Hunan")
+hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
+```
+- Left join to select only specific columns
+```{r}
+hunan <- left_join(hunan,hunan2012)%>%
+  select(1:4, 7, 15)
+```
 
-### 1.4.1 Importing polygon feature data \[MPSZ\]
+## 1.4 Visualisation with qtm next to basemap
 
--   `st_read`: reads simple features from structured table (?)
-
-    -   `dsn`: Data Source Name, specific data source folder
-
-    -   `layer`: points to filename; R figures out which layer to read
-
--   SVY21 - specific map projection, focused on Singapore
 
 ```{r}
-mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_WEB_PL")
+basemap <- tm_shape(hunan) +
+  tm_polygons() +
+  tm_text("NAME_3", size=0.5)
+
+gdppc <- qtm(hunan, "GDPPC")
+tmap_arrange(basemap, gdppc, asp=1, ncol=2)
 ```
 
 ### 1.4.2 Importing polygon feature data in shapefile form -- Cyclingpath
