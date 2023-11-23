@@ -3,13 +3,17 @@ title: "Hands-on Exercise 2: Spatial Weights & Spatial Autocorrelation"
 editor: visual
 ---
 
-On this page, I address Hands-On Exercise for Chapter 02 - **Spatial Weights and Applications**
+On this page, I address Hands-On Exercise for Chapter 02:
+
+- [**Spatial Weights and Applications**](#import-hunan-shapefile-datasets)
+- **Global Measures of Spatial Autocorrelation**
+
 
 # 1. Spatial Weights & Applications
 
 ## 1.2 Import `Hunan` Shapefile datasets
 
-### 1.1.1 Geospatial Data Sets
+### 1.2.1 Geospatial Data Sets
 
 -   `/data/geospatial/Hunan.###`: This is a geospatial data set in ESRI shapefile format.
 
@@ -190,13 +194,13 @@ cat("\n^ Note how 6th row only has one neighbour, i.e. region 69")
 
 ::: callout-note
 ## **Quiz**: What is the meaning of "Average number of links: 3.681818" shown above?
-- Each region has 3.68 links on average, i.e. (total number of links) / (total number of regions)
+
+-   Each region has 3.68 links on average, i.e. (total number of links) / (total number of regions)
 :::
 
-
 -   Alternative structure (warning: long!)
-    - this uses `table` to combine the column name from `hunan$Country` with
-    - `card` apparently looks at the length of the neighbour list and prints 1 if yes, 0 if no (i.e. Anhua has `1` neighobur, Anren has `4`)
+    -   this uses `table` to combine the column name from `hunan$Country` with
+    -   `card` apparently looks at the length of the neighbour list and prints 1 if yes, 0 if no (i.e. Anhua has `1` neighobur, Anren has `4`)
 
 ::: {.callout-caution collapse="true"}
 ## Using `str()` to print adjacency weight matrix
@@ -206,8 +210,9 @@ table(hunan$County, card(wm_d62))
 ```
 :::
 
-### 1.6.2x Unfinished Disjoint subgraph plot 
-- `n.comp.nb()` finds the number of disjoint connected subgraphs [[see source]](https://r-spatial.github.io/spdep/reference/compon.html)
+### 1.6.2x Unfinished Disjoint subgraph plot
+
+-   `n.comp.nb()` finds the number of disjoint connected subgraphs [\[see source\]](https://r-spatial.github.io/spdep/reference/compon.html)
 
 ```{r}
 #| code-fold: true
@@ -234,7 +239,8 @@ plot(wm_d62, coords, add=TRUE)
 plot(k1, coords, add=TRUE, col="red", length=0.08)
 ```
 
-- Side-by-side comparison:
+-   Side-by-side comparison:
+
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
@@ -249,7 +255,7 @@ title("Distance-Based Neighbours")
 
 ### 1.6.3 Exploring Contiguity Weights
 
--   Now allowing 6 nearest neighbours using knn 
+-   Now allowing 6 nearest neighbours using knn
 
 ```{r}
 #| code-fold: true
@@ -271,24 +277,22 @@ cat("\n^ Note how every row now has 6 neighbours exactly.")
 #| code-summary: "show code"
 #| 
 par(mfrow=c(1,2))
-plot(hunan$geometry, border="lightgrey")
-plot(k1, coords, pch = 19, cex = 0.6, add=TRUE, col="red", length=0.08, main="1st nearest neighbours")
-title("1st Nearest Neighbours")
+plot(hunan$geometry, border="lightgrey", main="1st Nearest Neighbours")
+plot(k1, coords, pch = 19, cex = 0.6, add=TRUE, col="red", length=0.08)
 
-plot(hunan$geometry, border="lightgrey")
+
+plot(hunan$geometry, border="lightgrey", main ="6st Nearest Neighbours")
 plot(knn6, coords, pch = 19, cex = 0.6, add = TRUE, col = "red")
-title("6st Nearest Neighbours")
 
 ```
 
-
-
 ## 1.7 Using Inversed Distance to plot neighbour
 
--   Starting with `wm_q` for queen contiguity, `coords` for centroids    
+-   Starting with `wm_q` for queen contiguity, `coords` for centroids
     -   `nbdists` takes in `nb` neighbours list and returns euclidean distances between neighbours in same structure
-    - `longlat` uses [Great Circle distances](https://en.wikipedia.org/wiki/Great-circle_distance) i.e. distance on a round earth instead of flat map
-- `lapply` `function(x)` applies inverse (1/x) to all output distances
+    -   `longlat` uses [Great Circle distances](https://en.wikipedia.org/wiki/Great-circle_distance) i.e. distance on a round earth instead of flat map
+-   `lapply` `function(x)` applies inverse (1/x) to all output distances
+
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
@@ -298,11 +302,9 @@ cat("\nInspecting first five rows of [knn6] obj \n\n")
 head(ids, 5)
 ```
 
-
-
 ### 1.7.1 Creating row-standardised weight matrix
 
-- `style "W"` gives equal weight to each neighbour (e.g. 0.125 for 8 neighbours, below)
+-   `style "W"` gives equal weight to each neighbour (e.g. 0.125 for 8 neighbours, below)
 
 ```{r}
 #| code-fold: true
@@ -314,7 +316,7 @@ cat("\nInspecting weights for region 10, with 8 neighbours: \n")
 rswm_q$weights[10]
 ```
 
-- `style "B"` performs standardisation based on row distance
+-   `style "B"` performs standardisation based on row distance
 
 ```{r}
 #| code-fold: true
@@ -329,75 +331,502 @@ cat("\nInspecting weights for region 10, with 8 neighbours: \n")
 rswm_ids$weights[10]
 ```
 
-
-
-
 ## 1.8 Making use of spatial weight matrix
 
-### 1.8.1 spatial lag with row-standardized weights
-
+### 1.8.1 Spatial lag with row-standardized weights
 
 ::: callout-note
 ## **Quiz**: Can you see the meaning of Spatial lag with row-standardized weights now?
-- Spatial lag describes how spatially-neighbouring regions affect each other
-- 
+
+-   **Spatial lag** as a concept describes how spatially-neighbouring regions affect each other
+    -   Use of row-standardised weights assigns weights to neighbours based on proximity (i.e. nearer neighbour affects more)
+    -   It's one way to calculate spatial lag, using distance to weight importance of neighbours
 :::
 
-
-- `style "W"` gives equal weight to each neighbour (e.g. 0.125 for 8 neighbours, below)
-    - `style "B"` gives equal weight to each neighbour (e.g. 1 for all 8 neighbours) 
+-   Calculating `spatially lagged GDPPC` values
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
-rswm_q <- nb2listw(wm_q, style="W", zero.policy = TRUE)
-rswm_q
+GDPPC.lag <- lag.listw(rswm_q, hunan$GDPPC)
 
-cat("\nInspecting weights for region 10, with 8 neighbours: \n")
-rswm_q$weights[10]
+
+cat("\nInspecting first 5 values for `Average Neighbour GDPPC`: \n")
+head(GDPPC.lag, 5)
+```
+
+-   Creating `lag.res` dataframe with regionname and `lag GDPPC` value
+    -   `NAME_3` column created for ease of left-join with `hunan`
+-   `left_join` to create table of rows of region-neighbour-lag GDPPC-geometry
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+lag.list <- list(hunan$NAME_3, lag.listw(rswm_q, hunan$GDPPC))
+lag.res <- as.data.frame(lag.list)
+colnames(lag.res) <- c("NAME_3", "lag GDPPC")
+
+cat("\nInspecting first row for `lag.res` : \n")
+cat(str(lag.res[1]))
+
+cat("\nShowing first 6 rows for joined `hunan +lag.res` : \n")
+hunan <- left_join(hunan,lag.res)
+head(hunan)
+
+```
+
+-   Visual comparison of regional GDPPC and spatial lag GDPPC
+    -   Adjusted colour breaks to use comparable scale -- MAPS CAN LIE! as Prof Kam says
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+gdppc <- qtm(hunan, "GDPPC", title="GDPPC", title.position=c('right', 'top'))
+lag_gdppc <- qtm(hunan, "lag GDPPC", title="Lag GDPPC", title.position=c('right', 'top'),
+                  fill.style="fixed",fill.breaks=c(0,20000,40000,60000,80000,100000))
+tmap_arrange(gdppc, lag_gdppc, asp=1, ncol=2)
+
+
 ```
 
 ### 1.8.2 spatial lag as a sum of neighbouring values
 
-- `style "W"` gives equal weight to each neighbour (e.g. 0.125 for 8 neighbours, below)
-    - `style "B"` gives equal weight to each neighbour (e.g. 1 for all 8 neighbours) 
+-   Using binary weights (0/1) to create `spatial lag` as a simple unweighted sum
+
+    -   use of `nb2listw`, `style = "B"` from before:
+
+    ```{r}
+    #| code-fold: true
+    #| code-summary: "show code"
+    b_weights <- lapply(wm_q, function(x) 0*x + 1)
+    b_weights2 <- nb2listw(wm_q, 
+                           glist = b_weights, 
+                           style = "B")
+    b_weights2
+    ```
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
-rswm_q <- nb2listw(wm_q, style="W", zero.policy = TRUE)
-rswm_q
+lag_sum <- list(hunan$NAME_3, lag.listw(b_weights2, hunan$GDPPC))
+lag.res <- as.data.frame(lag_sum)
+colnames(lag.res) <- c("NAME_3", "lag_sum GDPPC")
 
-cat("\nInspecting weights for region 10, with 8 neighbours: \n")
-rswm_q$weights[10]
+cat("Printing first five rows of lag_sum\n")
+for (i in 1:5) {
+  print(str(c(i, lag_sum[[1]][[i]], lag_sum[[2]][[i]])))
+}
+
+hunan <- left_join(hunan, lag.res)
+gdppc <- qtm(hunan, "GDPPC", title="GDPPC", title.position=c('right', 'top'), 
+             fill.style="fixed", fill.breaks=c(0,20000,40000,60000,80000,100000, 200000, 300000, 400000, 500000))
+
+lag_sum_gdppc <- qtm(hunan, "lag_sum GDPPC",
+                     title="lag_sum GDPPC", title.position=c('right', 'top'),
+                     fill.style="fixed", fill.breaks=c(0,20000,40000,60000,80000,100000, 200000, 300000, 400000, 500000)
+                     )
+tmap_arrange(gdppc, lag_sum_gdppc, asp=1, ncol=2)
+
+
+
+tmap_arrange(gdppc, lag_gdppc, asp=1, ncol=2)
+
 ```
-### 1.8.3 spatial window average
 
-- `style "W"` gives equal weight to each neighbour (e.g. 0.125 for 8 neighbours, below)
-    - `style "B"` gives equal weight to each neighbour (e.g. 1 for all 8 neighbours) 
+::: callout-note
+## **Quiz**: Can you understand the meaning of Spatial lag as a sum of neighboring values now?
+
+-   Unlike before, here the spatial lag GDPP is calculated simply as a sum of neighbouring regions; this looks less accurate
+    -   more neighbours, more spatial lag; leads to huge disparity if one region has 8 neighbours and one region has only 1
+    -   note that often the scale is up to 10x the GDPPC; harder to compare values
+:::
+
+### 1.8.3 Spatial window average
+
+- `Spatial Window Average` is row-standardised weights + self ("diagonal element")
+    - area[1] now has an additional 'neighbour', itself, for use in calculating row-standardised weights
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
-rswm_q <- nb2listw(wm_q, style="W", zero.policy = TRUE)
-rswm_q
-
-cat("\nInspecting weights for region 10, with 8 neighbours: \n")
-rswm_q$weights[10]
+wm_qs <- include.self(wm_q)
+wm_qs <- nb2listw(wm_qs)
+wm_qs
 ```
+- Now we create lag variable, as before;
+    - `lag.listw` calculates lag value
+    - `as.data.frame()` and `list()` converts into dataframe
+    - `colnames` renames columns to `NAME_3`, `lag_window_avg GDPPC` for ease of left joining
+- Maybe I should've used `kable()` to display my values instead of using `cat` to print:
 
-### 1.8.4 spatial window sum
 
-- `style "W"` gives equal weight to each neighbour (e.g. 0.125 for 8 neighbours, below)
-    - `style "B"` gives equal weight to each neighbour (e.g. 1 for all 8 neighbours) 
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
-rswm_q <- nb2listw(wm_q, style="W", zero.policy = TRUE)
-rswm_q
+lag_w_avg_gpdpc <- lag.listw(wm_qs, 
+                             hunan$GDPPC)
+lag.list.wm_qs <- list(hunan$NAME_3, lag.listw(wm_qs, hunan$GDPPC))
+lag_wm_qs.res <- as.data.frame(lag.list.wm_qs)
+colnames(lag_wm_qs.res) <- c("NAME_3", "lag_window_avg GDPPC")
+hunan <- left_join(hunan, lag_wm_qs.res)
 
-cat("\nInspecting weights for region 10, with 8 neighbours: \n")
-rswm_q$weights[10]
+cat("Displaying table of modified values:")
+hunan %>%
+  select("County", 
+         "lag GDPPC", 
+         "lag_sum GDPPC",
+         "lag_window_avg GDPPC") %>%
+  kable()
 ```
 
+- Now comparing `lag_gdppc` and `w_ave_gdppc` on the same colour scale
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+lag_gdppc <- qtm(hunan, "lag GDPPC", title="Lag GDPPC", title.position=c('right', 'top'), 
+                  fill.style="fixed",fill.breaks=c(10000,20000,30000,40000,50000,60000),
+                 legend.text.size = 0.5,legend.title.size = 0.5
+                 )
+
+w_avg_gdppc <- qtm(hunan, "lag_window_avg GDPPC",
+                   title="lag_window_avg GDPPC", title.position=c('right', 'top'), 
+                   fill.style="fixed", fill.breaks=c(10000,20000,30000,40000,50000,60000),
+                   legend.text.size = 0.5,legend.title.size = 0.5
+                   )
+tmap_arrange(lag_gdppc, w_avg_gdppc, asp=1, ncol=2)
+
+
+```
+
+### 1.8.4 Wpatial Window Sum
+
+- Simple `sum of neighbouring values` including self/diagonal value
+    - `lapply` to create matrix of ones in shape of `nb` structure
+    - use of `nb2listw` to assign a weights list object according to `nb` shape
+- use of `lag.listw()` to create lag variable for each region
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+wm_qs <- include.self(wm_q) # Run above 
+b_weights <- lapply(wm_qs, function(x) 0*x + 1)
+b_weights2 <- nb2listw(wm_qs, 
+                       glist = b_weights, 
+                       style = "B")
+w_sum_gdppc <- list(hunan$NAME_3, lag.listw(b_weights2, hunan$GDPPC))
+
+cat("Printing first five rows of w_sum_gdppc\n")
+for (i in 1:5) {
+  print(str(c(i, w_sum_gdppc[[1]][[i]], w_sum_gdppc[[2]][[i]])))
+}
+```
+
+
+- Then, just as before, convert using `as.data.frame()`, rename with `col_names` and `left_join` into huge `hunan` "sf" data.frame
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+w_sum_gdppc.res <- as.data.frame(w_sum_gdppc)
+colnames(w_sum_gdppc.res) <- c("NAME_3", "w_sum GDPPC")
+hunan <- left_join(hunan, w_sum_gdppc.res)
+
+hunan %>%
+  select("County", 
+         "GDPPC", 
+         "lag GDPPC", 
+         "lag_window_avg GDPPC",
+         "lag_sum GDPPC",
+         "w_sum GDPPC") %>%
+  kable()
+
+```
+
+
+
+- Side-by-side comparison plot with `lag_sum GDPPC`
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+lag_sum_gdppc <- qtm(hunan, "lag_sum GDPPC",
+                     title="lag_sum GDPPC", title.position=c('right', 'top'),
+                     fill.style="fixed", fill.breaks=c(0,100000, 200000, 300000, 400000, 500000),
+                     legend.text.size = 0.5,legend.title.size = 0.5
+                     )
+w_sum_gdppc <- qtm(hunan, "w_sum GDPPC",
+                   title="w_sum GDPPC", title.position=c('right', 'top'),
+                   fill.style="fixed", fill.breaks=c(0,100000, 200000, 300000, 400000, 500000),
+                  legend.text.size = 0.5,legend.title.size = 0.5
+                   )
+tmap_arrange(lag_sum_gdppc, w_sum_gdppc, asp=1, ncol=2)
+```
+
+
+# 2. Global Measures of Spatial Autocorrelation
+
+## 2.1 Analytical Question
+- Identify if development is equally distributed geographically in Hunan province
+- If **NO**, then ask: Is there signs of spatial clustering?
+- If **YES**, then ask: Where is the spatial clustering?
+
+## 2.2 Import Datasets
+## 2.3 Import Packages 
+
+- Actually, the same datasets are used from above; see [Section 1.2](#import-hunan-shapefile-datasets)
+    -   `/data/geospatial/Hunan.###`: This is a geospatial data set in ESRI shapefile format.
+    -   `/data/geospatial/Hunan.###`: This is a geospatial data set in ESRI shapefile format.
+- Similarly, the same packages are used, see [Section 1.3](#import-packages-files)
+    - `sf`, `spdep`, `tmap`, `tidyverse`
+
+
+```{r}
+# import can be ignored, loaded from before
+# pacman::p_load(sf, spdep, tmap, tidyverse, knitr)
+
+# We run here to reload hunan dataframe, remove spatial lag columns added in earlier
+hunan <- st_read(dsn = "data/geospatial", 
+                 layer = "Hunan")
+hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
+hunan <- left_join(hunan,hunan2012) %>%
+  select(1:4, 7, 15)
+kable(hunan)
+```
+
+- Now we create a basemap and chloropleth to look at `GDPPC` values for 2023
+- Note the difference in scales!
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+equal <- tm_shape(hunan) +
+  tm_fill("GDPPC",
+          n = 5,
+          style = "equal") +
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "Equal interval classification")
+
+quantile <- tm_shape(hunan) +
+  tm_fill("GDPPC",
+          n = 5,
+          style = "quantile") +
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "Equal quantile classification")
+
+tmap_arrange(equal, 
+             quantile, 
+             asp=1, 
+             ncol=2)
+```
+
+
+## 2.4 Calculating Global Spatial Autocorrelation
+
+
+1. Create QUEEN contiguity weight matrix as in [Section 1.5](#contiguity-spatial-weights), *Contiguity Spatial Weights*
+2. Create row-standardised weight matrix as in[Section 1.7.1](#creating-row-standardised-weight-matrix), *Creating row-standardised weight matrix*
+    - use of `style="W"` for equal weights here for example, but `Style="B"` more robust
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+wm_q <- poly2nb(hunan, 
+                queen=TRUE)
+# summary(wm_q)
+rswm_q <- nb2listw(wm_q, 
+                   style="W", 
+                   zero.policy = TRUE)
+rswm_q
+
+```
+
+## 2.4 "M": Moran's I test 
+- `Moran's I` evaluates spatial autocorrelation and returns whether pattern is clustered, dispersed, or random (i.e. no autocorrelation)
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+moran.test(hunan$GDPPC, 
+           listw=rswm_q, 
+           zero.policy = TRUE, 
+           na.action=na.omit)
+```
+
+::: callout-note
+## **Quiz**: What statistical conclusion can you draw from the output above?
+
+-  **Moran's I Statistic:** of ~0.3 indicates weak spatial correlation
+    - (+) means similar values are closer (e.g. high with high); (-) means dissimilar values cluster (e.g. high with low)
+    - Closer to 0 means random, closer to 1 or -1 indicates strong correlation
+    - Expected value is -1/(N-1), i.e. -1/999 here, which is close enough to 0 for estimation
+-  **alternative: greater:** Suggests that the alternative hypothesis is true, that GDPPC value has is spatially correlated (e.g. neighbouring regions affect value)
+    - null hypothesis is that the GDPPC is randomly distributed in space
+-  **p-Value:** of magnitude 1e-06 suggests confidence/statistical significance of result
+    - p value < 0.05 suggests result is not due to random chance
+:::
+
+
+### 2.4.1 "M": Monte Carlo Moran's I test 
+- Not sure where the is necessary, but [R documentation](https://www.rdocumentation.org/packages/spdep/versions/1.2-8/topics/moran.test) suggests also using the Monte Carlo version
+- `Moran's I` evaluates spatial autocorrelation and returns whether pattern is clustered, dispersed, or random (i.e. no autocorrelation)
+    - even using a different seed from Prof, values are similar 
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+set.seed(42)
+bperm= moran.mc(hunan$GDPPC, 
+                listw=rswm_q, 
+                nsim=999, 
+                zero.policy = TRUE, 
+                na.action=na.omit)
+bperm
+
+```
+::: callout-note
+## **Quiz**: What statistical conclusion can you draw from the output above?
+
+-  **Moran's I Statistic:** of 0.30075 indicates weak spatial correlation, as before; 
+    -  **alternative: greater:** Suggests that the alternative hypothesis is true, that GDPPC value has is spatially correlated (e.g. neighbouring regions affect value)
+    -  **p-Value:** of 0.001  suggests confidence/statistical significance of result; 0.001 probability of observing results like that
+    - **observed rank** according to documentations suggests the observed statistic is ranked 1000th of 1000 simulations, but I am not sure of what this means.
+    
+:::
+
+
+
+## 2.4.4.2 Visualising Monte Carlo Moran's I test 
+- Extracting key statistics from `$res` column
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+cat("Printing values from simulation:")
+cat("\n>> mean\t: ", mean(bperm$res[1:999]))
+cat("\n>> var\t: ", var(bperm$res[1:999]))
+cat("\n>> summary:\n")
+summary(bperm$res[1:999])
+
+```
+- plotting `res` column in histogram:
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+hist(bperm$res, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I",
+     main="Histogram of Moran's I statistics, 1000 simulations")
+abline(v=0, 
+       col="red") 
+
+```
+
+::: callout-note
+## **Quiz**: What statistical observation can you draw from the output above?
+
+-  Monte Carlo results in normal distribution; most values are close to zero or slightly negative -- close to expected value
+    - most values within 0.2; relatively weak spatial correlation
+- **observed rank** The Moran's I statistic of 0.30075 is ranked 1000/1000 simulations, and the highest statistic obtained
+    
+:::
+
+
+
+::: callout-note
+## **Challenge**: Instead of using Base Graph to plot the values, plot the values by using ggplot2 package.
+
+- Doesn't generate the exact same histogram, but close enough
+- Not sure why `breaks = 20` for `geom_histogram` doesn't work right, have to manually compute `data_binwidth` instead
+:::
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+library(ggplot2)
+
+# Create a sample dataset
+set.seed(123)
+data <- as.data.frame(bperm$res)
+data_binwidth <- (max(bperm$res) - min(bperm$res)) / 20
+
+ggplot(data, aes(x = bperm$res)) +
+  geom_histogram(binwidth = data_binwidth, fill = "grey", color = "black", alpha = 0.7) +
+  labs(title = "ggplot2 Histogram Counter-Example", x = "Simulated Moran's I", y = "Frequency") + 
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed", size = 1)
+  
+```
+
+
+## 2.4.5  Geary's C Statistics
+- `Geary's C` evaluates spatial autocorrelation at global level;
+    - Geary's C is inversely related to Moran's I; 
+    - Geary's C uses sum of squared distances, less sensitive to linear associations
+    - Moran's I uses standardized spatial covariance
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+geary.test(hunan$GDPPC, listw=rswm_q)
+
+```
+::: callout-note
+## **Quiz**: What statistical conclusion can you draw from the output above?
+
+-  **Geary's C Statistic:** of 0.69 suggests spatial correlation, i.e. GDPPC is related to neighbours
+    - Geary's c < 1 [indicates positive spatial autocorrelation](https://www.nku.edu/~longa/geomed/ppa/doc/globals/Globals.htm#:~:text=A%20value%20of%20Geary's%20c,points%20to%20negative%20spatial%20autocorrelation.), while >1 suggests spatial dispersion (negative auto-correlation) 
+    -  **alternative hypothesis: Expectation greater than statistic:** Suggests that the alternative hypothesis is true, that GDPPC value has is positively spatially correlated (e.g. neighbouring regions affect value)
+    -  **p-Value:** of 0.0001526 suggests confidence/statistical significance of result; very very low probability that result obtained is due to pure chance
+
+:::
+
+- corresponding Monte Carlo permutation test for Geary's C; even with a different seed, the values are similar
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+set.seed(42)
+bperm=geary.mc(hunan$GDPPC, 
+               listw=rswm_q, 
+               nsim=999)
+bperm
+
+```
+
+::: callout-note
+## **Quiz**: What statistical conclusion  can you draw from the output above?
+
+- **observed rank** The Geary's C statistic of 0.69072 is ranked 2/1000 simulations, and the second-lowest; i.e. most values are higher.
+- **p-value** of 0.002 is still very small, results unlikely to be due to randomness; **alternative hypothesis: greater** suggests there exists positive auto-correlation
+    
+:::
+
+
+## 2.4.5.3 Visualising Monte Carlo Geary's C test 
+- Extracting key statistics from `$res` column
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+cat("Printing values from Geary's C simulation:")
+cat("\n>> mean\t: ", mean(bperm$res[1:999]))
+cat("\n>> var\t: ", var(bperm$res[1:999]))
+cat("\n>> summary:\n")
+summary(bperm$res[1:999])
+
+```
+- plotting `res` column in histogram:
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+hist(bperm$res, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Geary's c",
+     main="Histogram of Geary's c statistics, 1000 simulations")
+abline(v=1, 
+       col="red") 
+
+```
