@@ -6,10 +6,20 @@ editor: visual
 On this page, I address Hands-On Exercise for Chapter 02:
 
 - [**Spatial Weights and Applications**](#import-hunan-shapefile-datasets)
-- **Global Measures of Spatial Autocorrelation**
+- [**Global Measures of Spatial Autocorrelation**](#global-measures-of-spatial-autocorrelation)
+- [**Local Measures of Spatial Autocorrelation**](#local-measures-of-spatial-autocorrelation)
 
 
 # 1. Spatial Weights & Applications
+- Creating `nb` matrix using `QUEEN`/`ROOK` Contiguity
+- Creating `wm_d62` weight matrix with fixed distance
+    - Fixed distance found by creating `nb` matrix using knn=1
+- Creating `rwsm_q` with `style="W"`, row-standardised weight matrix
+    - this creates `Spatial lag with row-standardized weights`
+    - also creates `Spatial Window Average`
+- Creating `rwsm_ids` with `style="B"`, binary weights, 
+    - this creates `Spatial lag as a sum of neighbouring values`
+    - also creates `Spatial Window Sum`
 
 ## 1.2 Import `Hunan` Shapefile datasets
 
@@ -23,21 +33,29 @@ On this page, I address Hands-On Exercise for Chapter 02:
 
 ## 1.3 Import packages & files
 
-```{r}
-pacman::p_load(sf, spdep, tmap, tidyverse, knitr)
-```
+- `hunan`: `sf` data.frame
+- `hunan2012`: `tbl_df` data.frame
 
 ```{r}
+#| code-fold: true
+#| code-summary: "show code"
+print("Importing packages...")
+pacman::p_load(sf, spdep, tmap, tidyverse, knitr)
+
+print("\nLoading dataset packages...")
 hunan <- st_read(dsn = "data/geospatial", 
                  layer = "Hunan")
 hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
 ```
-
--   Left join to select only specific columns
+-  Left join `hunan2012` to `hunan`, select only specific columns
 
 ```{r}
+#| code-fold: true
+#| code-summary: "show code"
 hunan <- left_join(hunan,hunan2012)%>%
   select(1:4, 7, 15)
+print("Previewing first 5 rows of joined, filtered hunan df")
+kable(head(hunan, 5))
 ```
 
 ## 1.4 Visualisation with qtm next to basemap
@@ -47,9 +65,11 @@ hunan <- left_join(hunan,hunan2012)%>%
 #| code-summary: "show code"
 basemap <- tm_shape(hunan) +
   tm_polygons() +
-  tm_text("NAME_3", size=0.5)
+  tm_text("NAME_3", size=0.5) +
+  tm_layout(main.title = "basemap of Hunan")
 
-gdppc <- qtm(hunan, "GDPPC")
+gdppc <- qtm(hunan, "GDPPC")  +
+  tm_layout(main.title = "GDPPC Quintile Map")
 tmap_arrange(basemap, gdppc, asp=1, ncol=2)
 ```
 
@@ -74,25 +94,21 @@ Identifying all neighbours of most connected region:
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
+cat("Most connected region, 85:", hunan$County[85], "\nNeighbours:\n\t")
 wm_q[[85]]
-```
 
--   Name of region
-
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
-cat("Most connected region:", hunan$County[85], "\n\n>> ID\t|  Name \t| GDPPC  \t|  Neighbours:")
+cat("\nPreviewing neighbours:\n\n>> ID\t|  Name \t| GDPPC  \t|  Neighbours:")
 
 for (value in wm_q[[85]]){
   cat("\n>> ", value, "\t|", hunan$County[value], "  \t|", hunan$GDPPC[value], "  \t|", wm_q[[value]])
   }
 ```
 
--   Print adjacency matrix (warning: long!)
+
+-   Print adjacency matrix with `str` (warning: long!)
 
 ::: {.callout-caution collapse="true"}
-## Using `str()` to print adjacency weight matrix
+## Expand to see adjacency weight matrix
 
 ```{r}
 str(wm_q)
@@ -108,11 +124,14 @@ wm_r <- poly2nb(hunan, queen=FALSE)
 summary(wm_r)
 ```
 
--   Who's not there?
+-   Which of Taoyuan's neighbours is now missing?
 
 ```{r}
 setdiff(wm_q[[85]], wm_r[[85]])
+hunan$County[[57]]
 ```
+- This is the difference between `ROOK` & `QUEEN`: Taoyuan & Nan share only a vertex, no edges
+![Alt text](taoyuan-nan.jpg)
 
 ### 1.5.3 Exploring Contiguity Weights
 
@@ -129,25 +148,32 @@ setdiff(wm_q[[85]], wm_r[[85]])
 longitude <- map_dbl(hunan$geometry, ~st_centroid(.x)[[1]])
 latitude <- map_dbl(hunan$geometry, ~st_centroid(.x)[[2]])
 coords <- cbind(longitude, latitude)
+cat("Printing first 6 rows of `coords`:\n")
 head(coords)
 ```
 
--   now plot Queen-contiguity based map using centroid vertices:
+-   now using centroid vertices, we plot:
+    - plot QUEEN-contiguity map
+    - plot ROOK-contiguity map
+    - plot differences (i.e. ROOK overlapping Queen)
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
-par(mfrow=c(1,3))
+par(mfrow=c(1,3), lty = 2, lwd = 2)
 plot(hunan$geometry, border="lightgrey")
 plot(wm_q, coords, pch = 19, cex = 0.6, add = TRUE, col= "red", main="Queen Contiguity")
 title("QUEEN Contiguity")
+box()
 plot(hunan$geometry, border="lightgrey")
 plot(wm_r, coords, pch = 19, cex = 0.6, add = TRUE, col = "blue", main="Rook Contiguity")
 title("ROOK Contiguity")
+box()
 plot(hunan$geometry, border="lightgrey")
 plot(wm_q, coords, pch = 19, cex = 0.6, add = TRUE, col= "red", main="Queen Contiguity")
 plot(wm_r, coords, pch = 19, cex = 0.6, add = TRUE, col = "blue", main="Rook Contiguity")
 title("Differences:")
+box()
 
 ```
 
@@ -171,7 +197,9 @@ title("Differences:")
 # coords <- coordinates(hunan) #following previous steps
 k1 <- knn2nb(knearneigh(coords))
 k1dists <- unlist(nbdists(k1, coords, longlat = TRUE))
+cat("Printing summary stats for k-1 distances\n")
 summary(k1dists)
+
 ```
 
 ### 1.6.2 Creating fixed distance weight matrix
@@ -199,11 +227,12 @@ cat("\n^ Note how 6th row only has one neighbour, i.e. region 69")
 :::
 
 -   Alternative structure (warning: long!)
-    -   this uses `table` to combine the column name from `hunan$Country` with
+    -   this uses `table` to combine the column name from `hunan$Country` with `wm_d62`
     -   `card` apparently looks at the length of the neighbour list and prints 1 if yes, 0 if no (i.e. Anhua has `1` neighobur, Anren has `4`)
+- Warning, long table!
 
 ::: {.callout-caution collapse="true"}
-## Using `str()` to print adjacency weight matrix
+## (Warning, long!) Expand to read adjacency weight matrix
 
 ```{r}
 table(hunan$County, card(wm_d62))
@@ -212,6 +241,7 @@ table(hunan$County, card(wm_d62))
 
 ### 1.6.2x Unfinished Disjoint subgraph plot
 
+- this section was tucked right above [8.6.2.1](https://r4gdsa.netlify.app/chap08#plotting-fixed-distance-weight-matrix) without explanation
 -   `n.comp.nb()` finds the number of disjoint connected subgraphs [\[see source\]](https://r-spatial.github.io/spdep/reference/compon.html)
 
 ```{r}
@@ -229,7 +259,7 @@ cat("^ i.e. 88 regions all report 1 distjoint subgraph, i.e. no region is disjoi
 
 -   Plot background of `hunan$Geometry`
 -   Plot points of centroids in `coords`, connected by black lines
--   Plot k=1-nearest-neighbours (i.e. show nearest neighbours as in `k1`) in red lines
+-   Plot k=1-nearest-neighbours (i.e. show nearest neighbours as in `k1`) in red lines on top; 
 
 ```{r}
 #| code-fold: true
@@ -237,6 +267,9 @@ cat("^ i.e. 88 regions all report 1 distjoint subgraph, i.e. no region is disjoi
 plot(hunan$geometry, border="lightgrey")
 plot(wm_d62, coords, add=TRUE)
 plot(k1, coords, add=TRUE, col="red", length=0.08)
+
+title("Comparing fixed-distance neighbours (black)\nvs 1st-nearest-neighbours (red)")
+box()
 ```
 
 -   Side-by-side comparison:
@@ -248,14 +281,16 @@ par(mfrow=c(1,2))
 plot(hunan$geometry, border="lightgrey")
 plot(k1, coords, add=TRUE, col="red", length=0.08, main="1st nearest neighbours")
 title("1st Nearest Neighbours")
+box()
 plot(hunan$geometry, border="lightgrey")
 plot(wm_d62, coords, add=TRUE, pch = 19, cex = 0.6, main="Distance link")
 title("Distance-Based Neighbours")
+box()
 ```
 
 ### 1.6.3 Exploring Contiguity Weights
 
--   Now allowing 6 nearest neighbours using knn
+-   Now calculating 6 nearest neighbours via `knn` algorithm
 
 ```{r}
 #| code-fold: true
@@ -279,10 +314,12 @@ cat("\n^ Note how every row now has 6 neighbours exactly.")
 par(mfrow=c(1,2))
 plot(hunan$geometry, border="lightgrey", main="1st Nearest Neighbours")
 plot(k1, coords, pch = 19, cex = 0.6, add=TRUE, col="red", length=0.08)
+box()
 
 
 plot(hunan$geometry, border="lightgrey", main ="6st Nearest Neighbours")
 plot(knn6, coords, pch = 19, cex = 0.6, add = TRUE, col = "red")
+box()
 
 ```
 
@@ -298,7 +335,7 @@ plot(knn6, coords, pch = 19, cex = 0.6, add = TRUE, col = "red")
 #| code-summary: "show code"
 dist <- nbdists(wm_q, coords, longlat = TRUE)
 ids <- lapply(dist, function(x) 1/(x))
-cat("\nInspecting first five rows of [knn6] obj \n\n")
+cat("\nInspecting first five rows of [ids] obj \n\n")
 head(ids, 5)
 ```
 
@@ -381,9 +418,11 @@ head(hunan)
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
-gdppc <- qtm(hunan, "GDPPC", title="GDPPC", title.position=c('right', 'top'))
-lag_gdppc <- qtm(hunan, "lag GDPPC", title="Lag GDPPC", title.position=c('right', 'top'),
-                  fill.style="fixed",fill.breaks=c(0,20000,40000,60000,80000,100000))
+gdppc <- qtm(hunan, "GDPPC") +
+  tm_layout(main.title = "GDPPC", main.title.position = "right")
+lag_gdppc <- qtm(hunan, "lag GDPPC",
+                  fill.style="fixed",fill.breaks=c(0,20000,40000,60000,80000,100000)) +
+  tm_layout(main.title = "lag GDPPC", main.title.position = "right")
 tmap_arrange(gdppc, lag_gdppc, asp=1, ncol=2)
 
 
@@ -418,18 +457,15 @@ for (i in 1:5) {
 }
 
 hunan <- left_join(hunan, lag.res)
-gdppc <- qtm(hunan, "GDPPC", title="GDPPC", title.position=c('right', 'top'), 
-             fill.style="fixed", fill.breaks=c(0,20000,40000,60000,80000,100000, 200000, 300000, 400000, 500000))
+gdppc <- qtm(hunan, "GDPPC",
+             fill.style="fixed", fill.breaks=c(0,20000,40000,60000,80000,100000, 200000, 300000, 400000, 500000)) +
+  tm_layout(main.title = "GDPPC", main.title.position = "right")
 
 lag_sum_gdppc <- qtm(hunan, "lag_sum GDPPC",
-                     title="lag_sum GDPPC", title.position=c('right', 'top'),
                      fill.style="fixed", fill.breaks=c(0,20000,40000,60000,80000,100000, 200000, 300000, 400000, 500000)
-                     )
+                     ) +
+  tm_layout(main.title = "lag_sum GDPPC", main.title.position = "right")
 tmap_arrange(gdppc, lag_sum_gdppc, asp=1, ncol=2)
-
-
-
-tmap_arrange(gdppc, lag_gdppc, asp=1, ncol=2)
 
 ```
 
@@ -485,22 +521,23 @@ hunan %>%
 #| code-fold: true
 #| code-summary: "show code"
 
-lag_gdppc <- qtm(hunan, "lag GDPPC", title="Lag GDPPC", title.position=c('right', 'top'), 
+lag_gdppc <- qtm(hunan, "lag GDPPC",
                   fill.style="fixed",fill.breaks=c(10000,20000,30000,40000,50000,60000),
                  legend.text.size = 0.5,legend.title.size = 0.5
-                 )
+                 ) +
+  tm_layout(main.title = "Lag GDPPC", main.title.position = "right")
 
 w_avg_gdppc <- qtm(hunan, "lag_window_avg GDPPC",
-                   title="lag_window_avg GDPPC", title.position=c('right', 'top'), 
                    fill.style="fixed", fill.breaks=c(10000,20000,30000,40000,50000,60000),
                    legend.text.size = 0.5,legend.title.size = 0.5
-                   )
+                   ) +
+  tm_layout(main.title = "lag_window_avg GDPPC", main.title.position = "right")
 tmap_arrange(lag_gdppc, w_avg_gdppc, asp=1, ncol=2)
 
 
 ```
 
-### 1.8.4 Wpatial Window Sum
+### 1.8.4 Spatial Window Sum
 
 - Simple `sum of neighbouring values` including self/diagonal value
     - `lapply` to create matrix of ones in shape of `nb` structure
@@ -552,20 +589,28 @@ hunan %>%
 #| code-fold: true
 #| code-summary: "show code"
 lag_sum_gdppc <- qtm(hunan, "lag_sum GDPPC",
-                     title="lag_sum GDPPC", title.position=c('right', 'top'),
                      fill.style="fixed", fill.breaks=c(0,100000, 200000, 300000, 400000, 500000),
                      legend.text.size = 0.5,legend.title.size = 0.5
-                     )
+                     ) +
+  tm_layout(main.title = "lag_sum GDPPC", main.title.position = "right")
 w_sum_gdppc <- qtm(hunan, "w_sum GDPPC",
-                   title="w_sum GDPPC", title.position=c('right', 'top'),
                    fill.style="fixed", fill.breaks=c(0,100000, 200000, 300000, 400000, 500000),
                   legend.text.size = 0.5,legend.title.size = 0.5
-                   )
+                   ) +
+  tm_layout(main.title = "w_sum GDPPC", main.title.position = "right")
 tmap_arrange(lag_sum_gdppc, w_sum_gdppc, asp=1, ncol=2)
 ```
 
 
 # 2. Global Measures of Spatial Autocorrelation
+- Visualizing difference between `equal interval` and `equal quantile` plots
+- Use of `Moran's I` test to test global spatial autocorrelation
+    - Important to note, we are calculating **Global** Moran's I, vs Local Moran's I, later
+    - Use of `Monte Carlo Moran's I` simulations
+- Use of `Geary's C` test to test global spatial autocorrelation
+    - Use of `Monte Carlo Geary's C` simulations
+- Drawing Spatial Correlogram for both `Moran's I` and `Geary's C`
+
 
 ## 2.1 Analytical Question
 - Identify if development is equally distributed geographically in Hunan province
@@ -606,14 +651,14 @@ equal <- tm_shape(hunan) +
           n = 5,
           style = "equal") +
   tm_borders(alpha = 0.5) +
-  tm_layout(main.title = "Equal interval classification")
+  tm_layout(main.title = "Equal interval classification", main.title.position = "right")
 
 quantile <- tm_shape(hunan) +
   tm_fill("GDPPC",
           n = 5,
           style = "quantile") +
   tm_borders(alpha = 0.5) +
-  tm_layout(main.title = "Equal quantile classification")
+  tm_layout(main.title = "Equal quantile classification", main.title.position = "right")
 
 tmap_arrange(equal, 
              quantile, 
@@ -855,7 +900,6 @@ MI_corr <- sp.correlogram(wm_q,
 print(MI_corr)
 plot(MI_corr)
 
-
 ```
 
 ::: callout-note
@@ -895,6 +939,10 @@ plot(GC_corr)
 
 
 # 3. Local Measures of Spatial Autocorrelation
+- Calculating `Local Moran's I` for each region
+- Creating LISA Clustermap
+- Creating Hotspot & Coldspot
+- Calculating Getis and Ord's Gi* values using fixed and adaptive distances
 
 ## 3.1 Analytical Question
 - Identify if development is equally distributed geographically in Hunan province
@@ -922,7 +970,7 @@ hunan <- st_read(dsn = "data/geospatial",
 hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
 hunan <- left_join(hunan,hunan2012) %>%
   select(1:4, 7, 15)
-kable(hunan)
+kable(head(hunan, 5))
 ```
 
 (some repeated content truncated)
@@ -947,7 +995,7 @@ head(localMI)
 -   Print coefficient matrix of localMoran (warning: long!)
 
 ::: {.callout-caution collapse="true"}
-## Using `str()` to print adjacency weight matrix
+## Warning: LONG! Using `str()` to print LocalMoran output Table
 
 ```{r}
 printCoefmat(data.frame(
@@ -968,7 +1016,7 @@ hunan.localMI <- cbind(hunan,localMI) %>%
   rename(Pr.Ii = Pr.z....E.Ii..)
 
 max_row <- hunan.localMI[which.max(hunan.localMI$Ii), ]
-print("The region of deepest blue is:", str(max_row$County))
+print(paste0("The region of deepest blue is: ", max_row$County))
 
 
 local_moran_stats <- tm_shape(hunan.localMI) +
@@ -1088,7 +1136,7 @@ tmap_arrange(gdppc, LISAmap, local_moran_stats,
 ## 3.8 HotSpot & ColdSPot Area Analysis
 - `Hot Spot` refers to region with value higher than surrounding; similarly `Cold Spot` for lower
 
-### 3.8.1 Getis and Ord’s G-Statistics
+### 3.8.1 Getis and Ord’s Gi*-Statistics
 - ultimate output `wm62_lw` is a weight matrix, using 62km as neighbour threshold, as a list of spatial weights
     - to find centroid, use Section 1.5.1 
     - to find cut-off distance, use Section 1.6.1
@@ -1127,9 +1175,9 @@ knn_lw <- nb2listw(knn, style = 'B')
 summary(knn_lw)
 
 ```
-## 3.9 Computing Gi statistics
-### 3.9.1 Computing Gi statistics with Fixed Distance
-- Using `wm62_lw` from above, creating fixed distance to calculate Z-score for Getis-Ord's Gi-statistics
+## 3.9 Computing Gi* statistics
+### 3.9.1 Computing Gi* statistics with Fixed Distance
+- Using `wm62_lw` from above, creating fixed distance to calculate Z-score for Getis-Ord's Gi*-statistics
     - Z-score, higher value == greater intensity of clustering
     - (+) high clusters, (-) low clusters
 - cbind back to create `hunan.gi` SpatialPolygonDataFrame
@@ -1143,7 +1191,7 @@ hunan.gi <- cbind(hunan, as.matrix(gi.fixed)) %>%
   rename(gstat_fixed = as.matrix.gi.fixed.)
 
 max_row <- hunan.gi[which.max(hunan.gi$gstat_fixed), ]
-print("The region of deepest blue is:", str(max_row$County))
+print(paste0("The region of deepest blue is: ", max_row$County))
 
 head(hunan.gi, 5)
 
@@ -1154,14 +1202,16 @@ head(hunan.gi, 5)
 #| code-fold: true
 #| code-summary: "show code"
                        
-gdppc <- qtm(hunan, "GDPPC")
+gdppc <- qtm(hunan, "GDPPC")  +
+  tm_layout(main.title = "GDPPC", main.title.position ="right")
 
 Gimap <-tm_shape(hunan.gi) +
   tm_fill(col = "gstat_fixed", 
           style = "pretty",
           palette="-RdBu",
           title = "local Gi*") +
-  tm_borders(alpha = 0.5)
+  tm_borders(alpha = 0.5)  +
+  tm_layout(main.title = "Local Gi*, fixed dist", main.title.position ="right")
 
 tmap_arrange(gdppc, Gimap, asp=1, ncol=2)
 
@@ -1187,7 +1237,8 @@ gi.adaptive <- localG(hunan$GDPPC, knn_lw)
 hunan.gi <- cbind(hunan, as.matrix(gi.adaptive)) %>%
   rename(gstat_adaptive = as.matrix.gi.adaptive.)
 
-gdppc<- qtm(hunan, "GDPPC")
+gdppc<- qtm(hunan, "GDPPC")  +
+  tm_layout(main.title = "GDPPC", main.title.position ="right")
 coolwarm <- colorRampPalette(c("blue", "white", "red"))(10)
 
 
@@ -1195,8 +1246,9 @@ Gimap_adaptive <- tm_shape(hunan.gi) +
   tm_fill(col = "gstat_adaptive", 
           style = "pretty", 
           palette=coolwarm, 
-          title = "local Gi, adaptive") + 
-  tm_borders(alpha = 0.5)
+          title = "local Gi* adaptive") + 
+  tm_borders(alpha = 0.5)  +
+  tm_layout(main.title = "Local Gi* adaptive dist", main.title.position ="right")
 
 tmap_arrange(gdppc, 
              Gimap,
