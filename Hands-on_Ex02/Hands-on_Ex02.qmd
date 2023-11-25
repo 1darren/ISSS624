@@ -5,23 +5,23 @@ editor: visual
 
 On this page, I address Hands-On Exercise for Chapter 02:
 
-- [**Spatial Weights and Applications**](#import-hunan-shapefile-datasets)
-- [**Global Measures of Spatial Autocorrelation**](#global-measures-of-spatial-autocorrelation)
-- [**Local Measures of Spatial Autocorrelation**](#local-measures-of-spatial-autocorrelation)
-
+-   [**Spatial Weights and Applications**](#import-hunan-shapefile-datasets)
+-   [**Global Measures of Spatial Autocorrelation**](#global-measures-of-spatial-autocorrelation)
+-   [**Local Measures of Spatial Autocorrelation**](#local-measures-of-spatial-autocorrelation)
 
 # 1. Spatial Weights & Applications
-- Creating `nb` matrix using `QUEEN`/`ROOK` Contiguity
-- Creating `wm_d62` weight matrix with fixed distance
-    - Fixed distance found by creating `nb` matrix using knn=1
-- Creating `rwsm_q` with `style="W"`, row-standardised weight matrix
-    - this creates `Spatial lag with row-standardized weights`
-    - also creates `Spatial Window Average`
-- Creating `rwsm_ids` with `style="B"`, binary weights, 
-    - this creates `Spatial lag as a sum of neighbouring values`
-    - also creates `Spatial Window Sum`
 
-## 1.2 Import `Hunan` Shapefile datasets
+-   Creating `nb` matrix using `QUEEN`/`ROOK` Contiguity
+-   Creating `wm_d62` weight matrix with fixed distance
+    -   Fixed distance found by creating `nb` matrix using knn=1
+-   Creating `rwsm_q` with `style="W"`, row-standardised weight matrix
+    -   this creates `Spatial lag with row-standardized weights`
+    -   also creates `Spatial Window Average`
+-   Creating `rwsm_ids` with `style="B"`, binary weights,
+    -   this creates `Spatial lag as a sum of neighbouring values`
+    -   also creates `Spatial Window Sum`
+
+## 1.2 Import `Hunan` Shapefile datasets {#import-hunan-shapefile-datasets}
 
 ### 1.2.1 Geospatial Data Sets
 
@@ -31,10 +31,10 @@ On this page, I address Hands-On Exercise for Chapter 02:
 
 -   `/data/aspatial/Hunan_2012.csv`: This csv file contains selected Hunan's local development indicators in 2012.
 
-## 1.3 Import packages & files
+## 1.3 Import packages & files {#import-packages-files}
 
-- `hunan`: `sf` data.frame
-- `hunan2012`: `tbl_df` data.frame
+-   `hunan`: `sf` data.frame
+-   `hunan2012`: `tbl_df` data.frame
 
 ```{r}
 #| code-fold: true
@@ -47,7 +47,8 @@ hunan <- st_read(dsn = "data/geospatial",
                  layer = "Hunan")
 hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
 ```
--  Left join `hunan2012` to `hunan`, select only specific columns
+
+-   Left join `hunan2012` to `hunan`, select only specific columns
 
 ```{r}
 #| code-fold: true
@@ -73,7 +74,7 @@ gdppc <- qtm(hunan, "GDPPC")  +
 tmap_arrange(basemap, gdppc, asp=1, ncol=2)
 ```
 
-## 1.5 Contiguity Spatial Weights
+## 1.5 Contiguity Spatial Weights {#contiguity-spatial-weights}
 
 -   There are 2 types of contiguity, based on chess pieces
     -   `QUEEN` two regions are contiguous if they share a vertex;
@@ -104,7 +105,6 @@ for (value in wm_q[[85]]){
   }
 ```
 
-
 -   Print adjacency matrix with `str` (warning: long!)
 
 ::: {.callout-caution collapse="true"}
@@ -130,8 +130,8 @@ summary(wm_r)
 setdiff(wm_q[[85]], wm_r[[85]])
 hunan$County[[57]]
 ```
-- This is the difference between `ROOK` & `QUEEN`: Taoyuan & Nan share only a vertex, no edges
-![Alt text](taoyuan-nan.jpg)
+
+-   This is the difference between `ROOK` & `QUEEN`: Taoyuan & Nan share only a vertex, no edges ![Alt text](taoyuan-nan.jpg)
 
 ### 1.5.3 Exploring Contiguity Weights
 
@@ -153,9 +153,9 @@ head(coords)
 ```
 
 -   now using centroid vertices, we plot:
-    - plot QUEEN-contiguity map
-    - plot ROOK-contiguity map
-    - plot differences (i.e. ROOK overlapping Queen)
+    -   plot QUEEN-contiguity map
+    -   plot ROOK-contiguity map
+    -   plot differences (i.e. ROOK overlapping Queen)
 
 ```{r}
 #| code-fold: true
@@ -229,7 +229,7 @@ cat("\n^ Note how 6th row only has one neighbour, i.e. region 69")
 -   Alternative structure (warning: long!)
     -   this uses `table` to combine the column name from `hunan$Country` with `wm_d62`
     -   `card` apparently looks at the length of the neighbour list and prints 1 if yes, 0 if no (i.e. Anhua has `1` neighobur, Anren has `4`)
-- Warning, long table!
+-   Warning, long table!
 
 ::: {.callout-caution collapse="true"}
 ## (Warning, long!) Expand to read adjacency weight matrix
@@ -241,7 +241,7 @@ table(hunan$County, card(wm_d62))
 
 ### 1.6.2x Unfinished Disjoint subgraph plot
 
-- this section was tucked right above [8.6.2.1](https://r4gdsa.netlify.app/chap08#plotting-fixed-distance-weight-matrix) without explanation
+-   this section was tucked right above [8.6.2.1](https://r4gdsa.netlify.app/chap08#plotting-fixed-distance-weight-matrix) without explanation
 -   `n.comp.nb()` finds the number of disjoint connected subgraphs [\[see source\]](https://r-spatial.github.io/spdep/reference/compon.html)
 
 ```{r}
@@ -259,7 +259,7 @@ cat("^ i.e. 88 regions all report 1 distjoint subgraph, i.e. no region is disjoi
 
 -   Plot background of `hunan$Geometry`
 -   Plot points of centroids in `coords`, connected by black lines
--   Plot k=1-nearest-neighbours (i.e. show nearest neighbours as in `k1`) in red lines on top; 
+-   Plot k=1-nearest-neighbours (i.e. show nearest neighbours as in `k1`) in red lines on top;
 
 ```{r}
 #| code-fold: true
@@ -339,7 +339,7 @@ cat("\nInspecting first five rows of [ids] obj \n\n")
 head(ids, 5)
 ```
 
-### 1.7.1 Creating row-standardised weight matrix
+### 1.7.1 Creating row-standardised weight matrix {#creating-row-standardised-weight-matrix}
 
 -   `style "W"` gives equal weight to each neighbour (e.g. 0.125 for 8 neighbours, below)
 
@@ -479,8 +479,8 @@ tmap_arrange(gdppc, lag_sum_gdppc, asp=1, ncol=2)
 
 ### 1.8.3 Spatial window average
 
-- `Spatial Window Average` is row-standardised weights + self ("diagonal element")
-    - area[1] now has an additional 'neighbour', itself, for use in calculating row-standardised weights
+-   `Spatial Window Average` is row-standardised weights + self ("diagonal element")
+    -   area\[1\] now has an additional 'neighbour', itself, for use in calculating row-standardised weights
 
 ```{r}
 #| code-fold: true
@@ -489,13 +489,12 @@ wm_qs <- include.self(wm_q)
 wm_qs <- nb2listw(wm_qs)
 wm_qs
 ```
-- Now we create lag variable, as before;
-    - `lag.listw` calculates lag value
-    - `as.data.frame()` and `list()` converts into dataframe
-    - `colnames` renames columns to `NAME_3`, `lag_window_avg GDPPC` for ease of left joining
-- Maybe I should've used `kable()` to display my values instead of using `cat` to print:
 
-
+-   Now we create lag variable, as before;
+    -   `lag.listw` calculates lag value
+    -   `as.data.frame()` and `list()` converts into dataframe
+    -   `colnames` renames columns to `NAME_3`, `lag_window_avg GDPPC` for ease of left joining
+-   Maybe I should've used `kable()` to display my values instead of using `cat` to print:
 
 ```{r}
 #| code-fold: true
@@ -516,7 +515,8 @@ hunan %>%
   kable()
 ```
 
-- Now comparing `lag_gdppc` and `w_ave_gdppc` on the same colour scale
+-   Now comparing `lag_gdppc` and `w_ave_gdppc` on the same colour scale
+
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
@@ -539,10 +539,10 @@ tmap_arrange(lag_gdppc, w_avg_gdppc, asp=1, ncol=2)
 
 ### 1.8.4 Spatial Window Sum
 
-- Simple `sum of neighbouring values` including self/diagonal value
-    - `lapply` to create matrix of ones in shape of `nb` structure
-    - use of `nb2listw` to assign a weights list object according to `nb` shape
-- use of `lag.listw()` to create lag variable for each region
+-   Simple `sum of neighbouring values` including self/diagonal value
+    -   `lapply` to create matrix of ones in shape of `nb` structure
+    -   use of `nb2listw` to assign a weights list object according to `nb` shape
+-   use of `lag.listw()` to create lag variable for each region
 
 ```{r}
 #| code-fold: true
@@ -560,8 +560,7 @@ for (i in 1:5) {
 }
 ```
 
-
-- Then, just as before, convert using `as.data.frame()`, rename with `col_names` and `left_join` into huge `hunan` "sf" data.frame
+-   Then, just as before, convert using `as.data.frame()`, rename with `col_names` and `left_join` into huge `hunan` "sf" data.frame
 
 ```{r}
 #| code-fold: true
@@ -581,9 +580,7 @@ hunan %>%
 
 ```
 
-
-
-- Side-by-side comparison plot with `lag_sum GDPPC`
+-   Side-by-side comparison plot with `lag_sum GDPPC`
 
 ```{r}
 #| code-fold: true
@@ -601,31 +598,31 @@ w_sum_gdppc <- qtm(hunan, "w_sum GDPPC",
 tmap_arrange(lag_sum_gdppc, w_sum_gdppc, asp=1, ncol=2)
 ```
 
+# 2. Global Measures of Spatial Autocorrelation {#global-measures-of-spatial-autocorrelation}
 
-# 2. Global Measures of Spatial Autocorrelation
-- Visualizing difference between `equal interval` and `equal quantile` plots
-- Use of `Moran's I` test to test global spatial autocorrelation
-    - Important to note, we are calculating **Global** Moran's I, vs Local Moran's I, later
-    - Use of `Monte Carlo Moran's I` simulations
-- Use of `Geary's C` test to test global spatial autocorrelation
-    - Use of `Monte Carlo Geary's C` simulations
-- Drawing Spatial Correlogram for both `Moran's I` and `Geary's C`
-
+-   Visualizing difference between `equal interval` and `equal quantile` plots
+-   Use of `Moran's I` test to test global spatial autocorrelation
+    -   Important to note, we are calculating **Global** Moran's I, vs Local Moran's I, later
+    -   Use of `Monte Carlo Moran's I` simulations
+-   Use of `Geary's C` test to test global spatial autocorrelation
+    -   Use of `Monte Carlo Geary's C` simulations
+-   Drawing Spatial Correlogram for both `Moran's I` and `Geary's C`
 
 ## 2.1 Analytical Question
-- Identify if development is equally distributed geographically in Hunan province
-- If **NO**, then ask: Is there signs of spatial clustering?
-- If **YES**, then ask: Where is the spatial clustering?
+
+-   Identify if development is equally distributed geographically in Hunan province
+-   If **NO**, then ask: Is there signs of spatial clustering?
+-   If **YES**, then ask: Where is the spatial clustering?
 
 ## 2.2 Import Datasets
-## 2.3 Import Packages 
 
-- Actually, the same datasets are used from above; see [Section 1.2](#import-hunan-shapefile-datasets)
+## 2.3 Import Packages
+
+-   Actually, the same datasets are used from above; see [Section 1.2](#import-hunan-shapefile-datasets)
     -   `/data/geospatial/Hunan.###`: This is a geospatial data set in ESRI shapefile format.
     -   `/data/geospatial/Hunan.###`: This is a geospatial data set in ESRI shapefile format.
-- Similarly, the same packages are used, see [Section 1.3](#import-packages-files)
-    - `sf`, `spdep`, `tmap`, `tidyverse`
-
+-   Similarly, the same packages are used, see [Section 1.3](#import-packages-files)
+    -   `sf`, `spdep`, `tmap`, `tidyverse`
 
 ```{r}
 # import can be ignored, loaded from before
@@ -640,8 +637,8 @@ hunan <- left_join(hunan,hunan2012) %>%
 kable(head(hunan, 5))
 ```
 
-- Now we create a basemap and chloropleth to look at `GDPPC` values for 2023
-- Note the difference in scales!
+-   Now we create a basemap and chloropleth to look at `GDPPC` values for 2023
+-   Note the difference in scales!
 
 ```{r}
 #| code-fold: true
@@ -666,13 +663,11 @@ tmap_arrange(equal,
              ncol=2)
 ```
 
-
 ## 2.4 Calculating Global Spatial Autocorrelation
 
-
-1. Create QUEEN contiguity weight matrix as in [Section 1.5](#contiguity-spatial-weights), *Contiguity Spatial Weights*
-2. Create row-standardised weight matrix as in[Section 1.7.1](#creating-row-standardised-weight-matrix), *Creating row-standardised weight matrix*
-    - use of `style="W"` for equal weights here for example, but `Style="B"` more robust
+1.  Create QUEEN contiguity weight matrix as in [Section 1.5](#contiguity-spatial-weights), *Contiguity Spatial Weights*
+2.  Create row-standardised weight matrix as in[Section 1.7.1](#creating-row-standardised-weight-matrix), *Creating row-standardised weight matrix*
+    -   use of `style="W"` for equal weights here for example, but `Style="B"` more robust
 
 ```{r}
 #| code-fold: true
@@ -687,8 +682,9 @@ rswm_q
 
 ```
 
-## 2.4 "M": Moran's I test 
-- `Moran's I` evaluates spatial autocorrelation and returns whether pattern is clustered, dispersed, or random (i.e. no autocorrelation)
+## 2.4 "M": Moran's I test
+
+-   `Moran's I` evaluates spatial autocorrelation and returns whether pattern is clustered, dispersed, or random (i.e. no autocorrelation)
 
 ```{r}
 #| code-fold: true
@@ -702,21 +698,21 @@ moran.test(hunan$GDPPC,
 ::: callout-note
 ## **Quiz**: What statistical conclusion can you draw from the output above?
 
--  **Moran's I Statistic:** of ~0.3 indicates weak spatial correlation
-    - (+) means similar values are closer (e.g. high with high); (-) means dissimilar values cluster (e.g. high with low)
-    - Closer to 0 means random, closer to 1 or -1 indicates strong correlation
-    - Expected value is -1/(N-1), i.e. -1/87 here, which is close enough to 0 for estimation
--  **alternative: greater:** Suggests that the alternative hypothesis is true, that GDPPC value has is spatially correlated (e.g. neighbouring regions affect value)
-    - null hypothesis is that the GDPPC is randomly distributed in space
--  **p-Value:** of magnitude 1e-06 suggests confidence/statistical significance of result
-    - p value < 0.05 suggests result is not due to random chance
+-   **Moran's I Statistic:** of \~0.3 indicates weak spatial correlation
+    -   (+) means similar values are closer (e.g. high with high); (-) means dissimilar values cluster (e.g. high with low)
+    -   Closer to 0 means random, closer to 1 or -1 indicates strong correlation
+    -   Expected value is -1/(N-1), i.e. -1/87 here, which is close enough to 0 for estimation
+-   **alternative: greater:** Suggests that the alternative hypothesis is true, that GDPPC value has is spatially correlated (e.g. neighbouring regions affect value)
+    -   null hypothesis is that the GDPPC is randomly distributed in space
+-   **p-Value:** of magnitude 1e-06 suggests confidence/statistical significance of result
+    -   p value \< 0.05 suggests result is not due to random chance
 :::
 
+### 2.4.1 "M": Monte Carlo Moran's I test
 
-### 2.4.1 "M": Monte Carlo Moran's I test 
-- Not sure where the is necessary, but [R documentation](https://www.rdocumentation.org/packages/spdep/versions/1.2-8/topics/moran.test) suggests also using the Monte Carlo version
-- `Moran's I` evaluates spatial autocorrelation and returns whether pattern is clustered, dispersed, or random (i.e. no autocorrelation)
-    - even using a different seed from Prof, values are similar 
+-   Not sure where the is necessary, but [R documentation](https://www.rdocumentation.org/packages/spdep/versions/1.2-8/topics/moran.test) suggests also using the Monte Carlo version
+-   `Moran's I` evaluates spatial autocorrelation and returns whether pattern is clustered, dispersed, or random (i.e. no autocorrelation)
+    -   even using a different seed from Prof, values are similar
 
 ```{r}
 #| code-fold: true
@@ -730,20 +726,19 @@ bperm= moran.mc(hunan$GDPPC,
 bperm
 
 ```
+
 ::: callout-note
 ## **Quiz**: What statistical conclusion can you draw from the output above?
 
--  **Moran's I Statistic:** of 0.30075 indicates weak spatial correlation, as before; 
-    -  **alternative: greater:** Suggests that the alternative hypothesis is true, that GDPPC value has is spatially correlated (e.g. neighbouring regions affect value)
-    -  **p-Value:** of 0.001  suggests confidence/statistical significance of result; 0.001 probability of observing results like that
-    - **observed rank** according to documentations suggests the observed statistic is ranked 1000th of 1000 simulations, but I am not sure of what this means.
-    
+-   **Moran's I Statistic:** of 0.30075 indicates weak spatial correlation, as before;
+    -   **alternative: greater:** Suggests that the alternative hypothesis is true, that GDPPC value has is spatially correlated (e.g. neighbouring regions affect value)
+    -   **p-Value:** of 0.001 suggests confidence/statistical significance of result; 0.001 probability of observing results like that
+    -   **observed rank** according to documentations suggests the observed statistic is ranked 1000th of 1000 simulations, but I am not sure of what this means.
 :::
 
+## 2.4.4.2 Visualising Monte Carlo Moran's I test
 
-
-## 2.4.4.2 Visualising Monte Carlo Moran's I test 
-- Extracting key statistics from `$res` column
+-   Extracting key statistics from `$res` column
 
 ```{r}
 #| code-fold: true
@@ -755,7 +750,9 @@ cat("\n>> summary:\n")
 summary(bperm$res[1:999])
 
 ```
-- plotting `res` column in histogram:
+
+-   plotting `res` column in histogram:
+
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
@@ -772,19 +769,16 @@ abline(v=0,
 ::: callout-note
 ## **Quiz**: What statistical observation can you draw from the output above?
 
--  Monte Carlo results in normal distribution; most values are close to zero or slightly negative -- close to expected value
-    - most values within 0.2; relatively weak spatial correlation
-- **observed rank** The Moran's I statistic of 0.30075 is ranked 1000/1000 simulations, and the highest statistic obtained
-    
+-   Monte Carlo results in normal distribution; most values are close to zero or slightly negative -- close to expected value
+    -   most values within 0.2; relatively weak spatial correlation
+-   **observed rank** The Moran's I statistic of 0.30075 is ranked 1000/1000 simulations, and the highest statistic obtained
 :::
-
-
 
 ::: callout-note
 ## **Challenge**: Instead of using Base Graph to plot the values, plot the values by using ggplot2 package.
 
-- Doesn't generate the exact same histogram, but close enough
-- Not sure why `breaks = 20` for `geom_histogram` doesn't work right, have to manually compute `data_binwidth` instead
+-   Doesn't generate the exact same histogram, but close enough
+-   Not sure why `breaks = 20` for `geom_histogram` doesn't work right, have to manually compute `data_binwidth` instead
 :::
 
 ```{r}
@@ -804,12 +798,12 @@ ggplot(data, aes(x = bperm$res)) +
   
 ```
 
+## 2.4.5 Geary's C Statistics
 
-## 2.4.5  Geary's C Statistics
-- `Geary's C` evaluates spatial autocorrelation at global level;
-    - Geary's C is inversely related to Moran's I; 
-    - Geary's C uses sum of squared distances, less sensitive to linear associations
-    - Moran's I uses standardized spatial covariance
+-   `Geary's C` evaluates spatial autocorrelation at global level;
+    -   Geary's C is inversely related to Moran's I;
+    -   Geary's C uses sum of squared distances, less sensitive to linear associations
+    -   Moran's I uses standardized spatial covariance
 
 ```{r}
 #| code-fold: true
@@ -817,17 +811,17 @@ ggplot(data, aes(x = bperm$res)) +
 geary.test(hunan$GDPPC, listw=rswm_q)
 
 ```
+
 ::: callout-note
 ## **Quiz**: What statistical conclusion can you draw from the output above?
 
--  **Geary's C Statistic:** of 0.69 suggests spatial correlation, i.e. GDPPC is related to neighbours
-    - Geary's c < 1 [indicates positive spatial autocorrelation](https://www.nku.edu/~longa/geomed/ppa/doc/globals/Globals.htm#:~:text=A%20value%20of%20Geary's%20c,points%20to%20negative%20spatial%20autocorrelation.), while >1 suggests spatial dispersion (negative auto-correlation) 
-    -  **alternative hypothesis: Expectation greater than statistic:** Suggests that the alternative hypothesis is true, that GDPPC value has is positively spatially correlated (e.g. neighbouring regions affect value)
-    -  **p-Value:** of 0.0001526 suggests confidence/statistical significance of result; very very low probability that result obtained is due to pure chance
-
+-   **Geary's C Statistic:** of 0.69 suggests spatial correlation, i.e. GDPPC is related to neighbours
+    -   Geary's c \< 1 [indicates positive spatial autocorrelation](https://www.nku.edu/~longa/geomed/ppa/doc/globals/Globals.htm#:~:text=A%20value%20of%20Geary's%20c,points%20to%20negative%20spatial%20autocorrelation.), while \>1 suggests spatial dispersion (negative auto-correlation)
+    -   **alternative hypothesis: Expectation greater than statistic:** Suggests that the alternative hypothesis is true, that GDPPC value has is positively spatially correlated (e.g. neighbouring regions affect value)
+    -   **p-Value:** of 0.0001526 suggests confidence/statistical significance of result; very very low probability that result obtained is due to pure chance
 :::
 
-- corresponding Monte Carlo permutation test for Geary's C; even with a different seed, the values are similar
+-   corresponding Monte Carlo permutation test for Geary's C; even with a different seed, the values are similar
 
 ```{r}
 #| code-fold: true
@@ -841,16 +835,15 @@ bperm
 ```
 
 ::: callout-note
-## **Quiz**: What statistical conclusion  can you draw from the output above?
+## **Quiz**: What statistical conclusion can you draw from the output above?
 
-- **observed rank** The Geary's C statistic of 0.69072 is ranked 2/1000 simulations, and the second-lowest; i.e. most values are higher.
-- **p-value** of 0.002 is still very small, results unlikely to be due to randomness; **alternative hypothesis: greater** suggests there exists positive auto-correlation
-    
+-   **observed rank** The Geary's C statistic of 0.69072 is ranked 2/1000 simulations, and the second-lowest; i.e. most values are higher.
+-   **p-value** of 0.002 is still very small, results unlikely to be due to randomness; **alternative hypothesis: greater** suggests there exists positive auto-correlation
 :::
 
+## 2.4.5.3 Visualising Monte Carlo Geary's C test
 
-## 2.4.5.3 Visualising Monte Carlo Geary's C test 
-- Extracting key statistics from `$res` column
+-   Extracting key statistics from `$res` column
 
 ```{r}
 #| code-fold: true
@@ -862,7 +855,9 @@ cat("\n>> summary:\n")
 summary(bperm$res[1:999])
 
 ```
-- plotting `res` column in histogram:
+
+-   plotting `res` column in histogram:
+
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
@@ -877,16 +872,15 @@ abline(v=1,
 ```
 
 ::: callout-note
-## **Quiz**: What statistical conclusion  can you draw from the output above?
+## **Quiz**: What statistical conclusion can you draw from the output above?
 
-- **observed rank** The Geary's C statistic of 0.69072 is ranked 2/1000 simulations, and the second-lowest; i.e. most values are higher.
-    - as before, Monte Carlo simulations seem to generate normal distribution
-    - positive spatial correlation exists but not strong; mostly near expected value 1.0 
-    
+-   **observed rank** The Geary's C statistic of 0.69072 is ranked 2/1000 simulations, and the second-lowest; i.e. most values are higher.
+    -   as before, Monte Carlo simulations seem to generate normal distribution
+    -   positive spatial correlation exists but not strong; mostly near expected value 1.0
 :::
 
-
 ## 2.5 Spatial Correlogram
+
 ### 2.5.1 Moran's I Correlogram
 
 ```{r}
@@ -905,11 +899,9 @@ plot(MI_corr)
 ::: callout-note
 ## **Quiz**: What statistical conclusion can you draw from the plot/output above?
 
-- **Correlogram** At smaller lags (i.e. smaller distance away) there is positive spatial auto-correlation, fading away to randomness/no autocorrelation at intermediate lags, and negative at higher (5-6) lags
-- Observing **printout**, lags at 3 and 4 are not strongly statistically significant, best results at lags 1, 2, 5.
-    
+-   **Correlogram** At smaller lags (i.e. smaller distance away) there is positive spatial auto-correlation, fading away to randomness/no autocorrelation at intermediate lags, and negative at higher (5-6) lags
+-   Observing **printout**, lags at 3 and 4 are not strongly statistically significant, best results at lags 1, 2, 5.
 :::
-
 
 ### 2.5.2 Geary's C Correlogram
 
@@ -930,35 +922,33 @@ plot(GC_corr)
 ::: callout-note
 ## **Quiz**: What statistical conclusion can you draw from the plot/output above?
 
-- **Correlogram** At smaller lags (i.e. smaller distance away) there is positive spatial auto-correlation, fading away to randomness/no autocorrelation at intermediate lags, and negative at higher (5-6) lags
-- Observing **printout**, lags at 3, 4, 6 are not strongly statistically significant, best results at lags 1, 2, 5.
-    - Probably because few regions are 6-regions away; results probably most accurate for 1- or 2-regions away
-    
+-   **Correlogram** At smaller lags (i.e. smaller distance away) there is positive spatial auto-correlation, fading away to randomness/no autocorrelation at intermediate lags, and negative at higher (5-6) lags
+-   Observing **printout**, lags at 3, 4, 6 are not strongly statistically significant, best results at lags 1, 2, 5.
+    -   Probably because few regions are 6-regions away; results probably most accurate for 1- or 2-regions away
 :::
 
+# 3. Local Measures of Spatial Autocorrelation {#local-measures-of-spatial-autocorrelation}
 
-
-# 3. Local Measures of Spatial Autocorrelation
-- Calculating `Local Moran's I` for each region
-- Creating LISA Clustermap
-- Creating Hotspot & Coldspot
-- Calculating Getis and Ord's Gi* values using fixed and adaptive distances
+-   Calculating `Local Moran's I` for each region
+-   Creating LISA Clustermap
+-   Creating Hotspot & Coldspot
+-   Calculating Getis and Ord's Gi\* values using fixed and adaptive distances
 
 ## 3.1 Analytical Question
-- Identify if development is equally distributed geographically in Hunan province
-- If **NO**, then ask: Is there signs of spatial clustering?
-- If **YES**, then ask: Where is the spatial clustering?
 
+-   Identify if development is equally distributed geographically in Hunan province
+-   If **NO**, then ask: Is there signs of spatial clustering?
+-   If **YES**, then ask: Where is the spatial clustering?
 
 ## 3.2 Import Datasets
-## 3.3 Import Packages 
 
-- Actually, the same datasets are used from above; see [Section 1.2](#import-hunan-shapefile-datasets) and even [Section 2.1]
+## 3.3 Import Packages
+
+-   Actually, the same datasets are used from above; see [Section 1.2](#import-hunan-shapefile-datasets) and even \[Section 2.1\]
     -   `/data/geospatial/Hunan.###`: This is a geospatial data set in ESRI shapefile format.
     -   `/data/geospatial/Hunan.###`: This is a geospatial data set in ESRI shapefile format.
-- Similarly, the same packages are used, see [Section 1.3](#import-packages-files)
-    - `sf`, `spdep`, `tmap`, `tidyverse`
-
+-   Similarly, the same packages are used, see [Section 1.3](#import-packages-files)
+    -   `sf`, `spdep`, `tmap`, `tidyverse`
 
 ```{r}
 # import can be ignored, loaded from before
@@ -976,12 +966,14 @@ kable(head(hunan, 5))
 (some repeated content truncated)
 
 ## 3.6 Cluster & Outlier Analysis
-- use of `LISA` (Local Indicators of Spatial Association) to detect clusters/outliers from Hunan GDPPC
+
+-   use of `LISA` (Local Indicators of Spatial Association) to detect clusters/outliers from Hunan GDPPC
 
 ### 3.6.1 Local Moran's I
-- (Global) Moran's I is performed over the entire dataset, looking for pattern across all the datapoints considered
-    - Local Moran's I checks each individual datapoint for spatial correlation to detect individual clusters
-- `localmoran()` thus identifies a Local Moran's I score for each of 88 regions
+
+-   (Global) Moran's I is performed over the entire dataset, looking for pattern across all the datapoints considered
+    -   Local Moran's I checks each individual datapoint for spatial correlation to detect individual clusters
+-   `localmoran()` thus identifies a Local Moran's I score for each of 88 regions
 
 ```{r}
 #| code-fold: true
@@ -1005,9 +997,9 @@ printCoefmat(data.frame(
 ```
 :::
 
-
 ### 3.6.1.1 Mapping Local Moran's I
-- first we append the output coefficient matrix from `localMI` to hunan before mapping
+
+-   first we append the output coefficient matrix from `localMI` to hunan before mapping
 
 ```{r}
 #| code-fold: true
@@ -1040,17 +1032,19 @@ tmap_arrange(local_moran_stats,
              asp=1, 
              ncol=2)
 ```
-- Overall, looks like generally weakly positive spatial autocorrelation
-- Region of darkest blue (i.e. most influenced by neighbours) is Changsha, 4.9022 (or Wangcheng, 4.4220)
-    - confidently so, as p-values of regions are extremely low
 
+-   Overall, looks like generally weakly positive spatial autocorrelation
+-   Region of darkest blue (i.e. most influenced by neighbours) is Changsha, 4.9022 (or Wangcheng, 4.4220)
+    -   confidently so, as p-values of regions are extremely low
 
 ## 3.7 LISA Cluster Maps
-- plot significant locations of spatial autocorrelation
+
+-   plot significant locations of spatial autocorrelation
 
 ### 3.7.1 Moran scatterplot
-- scatterplot of spatially lag GDPPC (y-axis) against region's GDPPC (x-axis)
-- top-right quadrant show regions of high GDPPC and high GDPPC-neighbours
+
+-   scatterplot of spatially lag GDPPC (y-axis) against region's GDPPC (x-axis)
+-   top-right quadrant show regions of high GDPPC and high GDPPC-neighbours
 
 ```{r}
 #| code-fold: true
@@ -1064,8 +1058,9 @@ nci <- moran.plot(hunan$GDPPC, rswm_q,
 ```
 
 ### 3.7.2 Rescaling scatterplot to centre
-- R-code is really quite powerful for statistics
-- use of `scale` for standardisation of values to "centre" the plot
+
+-   R-code is really quite powerful for statistics
+-   use of `scale` for standardisation of values to "centre" the plot
 
 ```{r}
 #| code-fold: true
@@ -1080,13 +1075,13 @@ nci2 <- moran.plot(hunan$Z.GDPPC, rswm_q,
 ```
 
 ### 3.7.3 Preparing LISA Cluster Map:
-- creates a vector called `quadrant` of length same as `localMI` (i.e. 88 regions)
-- creates spatially lagged GDPPC and centre by removing mean
-- also centre local moran's I value around its mean
-- set statistical threshold of `0.05`
-- partition 4 quadrants from low-low to high-high
-    - "5th quadrant" of non-statistically significant regions
 
+-   creates a vector called `quadrant` of length same as `localMI` (i.e. 88 regions)
+-   creates spatially lagged GDPPC and centre by removing mean
+-   also centre local moran's I value around its mean
+-   set statistical threshold of `0.05`
+-   partition 4 quadrants from low-low to high-high
+    -   "5th quadrant" of non-statistically significant regions
 
 ```{r}
 #| code-fold: true
@@ -1104,10 +1099,7 @@ quadrant[DV >0 & LM_I>0] <- 4
 quadrant[localMI[,5]>signif] <- 0
 ```
 
-
-### 3.7.3 Now we plot the map  LISA Cluster Map:
--
-
+## \### 3.7.3 Now we plot the map LISA Cluster Map:
 
 ```{r}
 #| code-fold: true
@@ -1133,14 +1125,17 @@ tmap_arrange(gdppc, LISAmap, local_moran_stats,
              local_moran_p, 
              asp=2, ncol=2)
 ```
-## 3.8 HotSpot & ColdSPot Area Analysis
-- `Hot Spot` refers to region with value higher than surrounding; similarly `Cold Spot` for lower
 
-### 3.8.1 Getis and Ord’s Gi*-Statistics
-- ultimate output `wm62_lw` is a weight matrix, using 62km as neighbour threshold, as a list of spatial weights
-    - to find centroid, use Section 1.5.1 
-    - to find cut-off distance, use Section 1.6.1
-    - to computed fixed-distance weight, use Section 1.6.2
+## 3.8 HotSpot & ColdSPot Area Analysis
+
+-   `Hot Spot` refers to region with value higher than surrounding; similarly `Cold Spot` for lower
+
+### 3.8.1 Getis and Ord's Gi\*-Statistics
+
+-   ultimate output `wm62_lw` is a weight matrix, using 62km as neighbour threshold, as a list of spatial weights
+    -   to find centroid, use Section 1.5.1
+    -   to find cut-off distance, use Section 1.6.1
+    -   to computed fixed-distance weight, use Section 1.6.2
 
 ```{r}
 #| code-fold: true
@@ -1159,12 +1154,12 @@ summary(wm62_lw)
 
 ```
 
-
 ### 3.8.3 Computing adaptive distance weight matrix
-- use `knn` with neighbours=8 (max) to enforce "smoothing of neighbour relationship"
-    - note below, all 88 regions are "least connected" and "most connected"
-- use `nb2listw` to convert `nb` object to list of spatial weights
-    - note binary style i.e.
+
+-   use `knn` with neighbours=8 (max) to enforce "smoothing of neighbour relationship"
+    -   note below, all 88 regions are "least connected" and "most connected"
+-   use `nb2listw` to convert `nb` object to list of spatial weights
+    -   note binary style i.e.
 
 ```{r}
 #| code-fold: true
@@ -1175,12 +1170,16 @@ knn_lw <- nb2listw(knn, style = 'B')
 summary(knn_lw)
 
 ```
-## 3.9 Computing Gi* statistics
-### 3.9.1 Computing Gi* statistics with Fixed Distance
-- Using `wm62_lw` from above, creating fixed distance to calculate Z-score for Getis-Ord's Gi*-statistics
-    - Z-score, higher value == greater intensity of clustering
-    - (+) high clusters, (-) low clusters
-- cbind back to create `hunan.gi` SpatialPolygonDataFrame
+
+## 3.9 Computing Gi\* statistics
+
+### 3.9.1 Computing Gi\* statistics with Fixed Distance
+
+-   Using `wm62_lw` from above, creating fixed distance to calculate Z-score for Getis-Ord's Gi\*-statistics
+    -   Z-score, higher value == greater intensity of clustering
+    -   (+) high clusters, (-) low clusters
+-   cbind back to create `hunan.gi` SpatialPolygonDataFrame
+
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
@@ -1196,72 +1195,79 @@ print(paste0("The region of deepest blue is: ", max_row$County))
 head(hunan.gi, 5)
 
 ```
-- draw map:
-    - from above, darkest red Local Gi region is Wangcheng
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
-                       
-gdppc <- qtm(hunan, "GDPPC")  +
-  tm_layout(main.title = "GDPPC", main.title.position ="right")
 
-Gimap <-tm_shape(hunan.gi) +
-  tm_fill(col = "gstat_fixed", 
-          style = "pretty",
-          palette="-RdBu",
-          title = "local Gi*") +
-  tm_borders(alpha = 0.5)  +
-  tm_layout(main.title = "Local Gi*, fixed dist", main.title.position ="right")
+-   draw map:
 
-tmap_arrange(gdppc, Gimap, asp=1, ncol=2)
+    -   from above, darkest red Local Gi region is Wangcheng
 
-```
-::: callout-note
-## **Quiz**: What statistical conclusion can you draw from the output above?
+    ```{r}
+    #| code-fold: true
+    #| code-summary: "show code"
+                           
+    gdppc <- qtm(hunan, "GDPPC")  +
+      tm_layout(main.title = "GDPPC", main.title.position ="right")
 
--  `Wangcheng` shows slightly higher Gi* value than `Changsha`, though both were identified earlier
-- similar colour palette as quadrant mapping earlier; red regions are high-high, blue regions are low-low
-    - overall, looks like there is some agreement of spatial auto-correlation when analysed like this
+    Gimap <-tm_shape(hunan.gi) +
+      tm_fill(col = "gstat_fixed", 
+              style = "pretty",
+              palette="-RdBu",
+              title = "local Gi*") +
+      tm_borders(alpha = 0.5)  +
+      tm_layout(main.title = "Local Gi*, fixed dist", main.title.position ="right")
+
+    tmap_arrange(gdppc, Gimap, asp=1, ncol=2)
+
+    ```
+
+    ::: callout-note \## **Quiz**: What statistical conclusion can you draw from the output above?
+
+-   `Wangcheng` shows slightly higher Gi\* value than `Changsha`, though both were identified earlier
+
+-   similar colour palette as quadrant mapping earlier; red regions are high-high, blue regions are low-low
+
+    -   overall, looks like there is some agreement of spatial auto-correlation when analysed like this
 
 :::
 
-### 3.9.2 Computing Gi statistics using Adaptive Distance 
-- Using `knn_lw` from above with 8 fixed neighours for each region
-    - I guess "adaptive distance" means "whatever distance needed to clock as neighbours"
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
-                       
-fips <- order(hunan$County)
-gi.adaptive <- localG(hunan$GDPPC, knn_lw)
-hunan.gi <- cbind(hunan, as.matrix(gi.adaptive)) %>%
-  rename(gstat_adaptive = as.matrix.gi.adaptive.)
+### 3.9.2 Computing Gi statistics using Adaptive Distance
 
-gdppc<- qtm(hunan, "GDPPC")  +
-  tm_layout(main.title = "GDPPC", main.title.position ="right")
-coolwarm <- colorRampPalette(c("blue", "white", "red"))(10)
+-   Using `knn_lw` from above with 8 fixed neighours for each region
+
+    -   I guess "adaptive distance" means "whatever distance needed to clock as neighbours"
+
+    ```{r}
+    #| code-fold: true
+    #| code-summary: "show code"
+                           
+    fips <- order(hunan$County)
+    gi.adaptive <- localG(hunan$GDPPC, knn_lw)
+    hunan.gi <- cbind(hunan, as.matrix(gi.adaptive)) %>%
+      rename(gstat_adaptive = as.matrix.gi.adaptive.)
+
+    gdppc<- qtm(hunan, "GDPPC")  +
+      tm_layout(main.title = "GDPPC", main.title.position ="right")
+    coolwarm <- colorRampPalette(c("blue", "white", "red"))(10)
 
 
-Gimap_adaptive <- tm_shape(hunan.gi) + 
-  tm_fill(col = "gstat_adaptive", 
-          style = "pretty", 
-          palette=coolwarm, 
-          title = "local Gi* adaptive") + 
-  tm_borders(alpha = 0.5)  +
-  tm_layout(main.title = "Local Gi* adaptive dist", main.title.position ="right")
+    Gimap_adaptive <- tm_shape(hunan.gi) + 
+      tm_fill(col = "gstat_adaptive", 
+              style = "pretty", 
+              palette=coolwarm, 
+              title = "local Gi* adaptive") + 
+      tm_borders(alpha = 0.5)  +
+      tm_layout(main.title = "Local Gi* adaptive dist", main.title.position ="right")
 
-tmap_arrange(gdppc, 
-             Gimap,
-             Gimap_adaptive,
-             asp=1, 
-             ncol=3)
+    tmap_arrange(gdppc, 
+                 Gimap,
+                 Gimap_adaptive,
+                 asp=1, 
+                 ncol=3)
 
-```
+    ```
 
 ::: callout-note
 ## **Quiz**: What statistical conclusion can you draw from the output above?
 
-- Using both fixed- and adaptive-distance neigbours generates similar results; values are largely in agreement
-- knn=8 feels like it's not very logical, but maybe there's not too much difference 
-
+-   Using both fixed- and adaptive-distance neigbours generates similar results; values are largely in agreement
+-   knn=8 feels like it's not very logical, but maybe there's not too much difference
 :::
