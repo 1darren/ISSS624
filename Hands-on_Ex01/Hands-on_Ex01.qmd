@@ -258,24 +258,34 @@ pacman::p_load(sf, tmap, tidyverse)
 ```
 
 ## 2.3 Importing Data
+
 ### 2.3.1 Data Types
+
 -   `mpsz` already downloaded;
 -   `respopagesextod2011to2020.csv` retrieved from [Department of Statistics](https://www.singstat.gov.sg/find-data/search-by-theme/population/geographic-distribution/latest-data)
 
 ### 2.3.2 Importing Geospatial Data
-- if not run already in 1.4.1 before:
+
+-   if not run already in 1.4.1 before:
+
 ```{r}
 mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_WEB_PL")
 mpsz
 ```
+
 ### 2.3.2 Importing attribute data into R
-- now read csv
+
+-   now read csv
+
 ```{r}
 popdata <- read_csv("data/aspatial/respopagesexfa2011to2020.csv")
 
 ```
+
 ### 2.3.4 Data preparation & wrangling
-- This function is too hugely nested 
+
+-   This function is too hugely nested
+
 ```{r}
 popdata2020 <- popdata %>%
   filter(Time == 2020) %>%
@@ -303,16 +313,19 @@ popdata2020 <- popdata2020 %>%
 
 popdata2020
 ```
-- Left join `mpsz` on `popdata2020` to create simple dataframe:
+
+-   Left join `mpsz` on `popdata2020` to create simple dataframe:
+
 ```{r}
 mpsz_pop2020 <- left_join(mpsz, popdata2020,
                           by = c("SUBZONE_N" = "SZ"))
 write_rds(mpsz_pop2020, "data/rds/mpszpop2020.rds")
 ```
 
-
 ## 2.4 Using `tmap`
+
 ### 2.4.1 Quick tmap using `qtm()`
+
 ```{r}
 tmap_mode("plot")
 qtm(mpsz_pop2020, fill = "DEPENDENCY")
@@ -320,6 +333,7 @@ qtm(mpsz_pop2020, fill = "DEPENDENCY")
 ```
 
 ### 2.4.2 Complex tmap using `tmap`
+
 ```{r}
 tm_shape(mpsz_pop2020)+
   tm_fill("DEPENDENCY", 
@@ -340,20 +354,22 @@ tm_shape(mpsz_pop2020)+
              position = c("left", "bottom"))
 ```
 
-
 ## 2.4.2.1 Drawing base map, adding polygon layer
+
 ```{r}
 tm_shape(mpsz_pop2020) + tm_polygons()
 ```
 
 ## 2.4.2.2 Colouring polygons
+
 ```{r}
 tm_shape(mpsz_pop2020) + tm_polygons("DEPENDENCY")
 ```
 
-
 ## 2.4.2.3 Drawing base map, adding polygon layer
-- `tm_polygons()` is really just `tm_borders()` +  `tm_fill` 
+
+-   `tm_polygons()` is really just `tm_borders()` + `tm_fill`
+
 ```{r}
 tm_shape(mpsz_pop2020) + tm_fill("DEPENDENCY")
 ```
@@ -368,10 +384,7 @@ tm_shape(mpsz_pop2020)+
   tm_borders(lwd = 0.1,  alpha = 1)
 ```
 
-
-
 ## 2.4.3 Data classification beyond `pretty`
-
 
 ::: panel-tabset
 ## Jenks, 5
@@ -397,10 +410,11 @@ tm_shape(mpsz_pop2020)+
           style = "equal") +
   tm_borders(alpha = 0.5)
 ```
+
 ## Jenks, 20
 
-- Using `jenks` natural break optimization
-- 20 classes for illustration
+-   Using `jenks` natural break optimization
+-   20 classes for illustration
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -409,10 +423,11 @@ tm_shape(mpsz_pop2020)+
           style = "jenks") +
   tm_borders(alpha = 0.5)
 ```
+
 ## kmeans, 5
 
-- Using `jenks` natural break optimization
-- 20 classes for illustration
+-   Using `jenks` natural break optimization
+-   20 classes for illustration
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -424,22 +439,24 @@ tm_shape(mpsz_pop2020)+
 
 ## Custom Breaks, 5
 
-- first, quick data anaylis:
+-   first, quick data anaylis:
+
 ```{r}
 summary(mpsz_pop2020$DEPENDENCY)
 ```
-- decision to use 0.6, 0.7, 0.8, 0.9;
+
+-   decision to use 0.6, 0.7, 0.8, 0.9;
+
 ```{r}
 tm_shape(mpsz_pop2020)+
   tm_fill("DEPENDENCY",
           breaks = c(0, 0.60, 0.70, 0.80, 0.90, 1.00)) +
   tm_borders(alpha = 0.5)
 ```
-
 :::
 
-
 ## 2.4.4 Colour schemes:
+
 ```{r}
 tm_shape(mpsz_pop2020)+
   tm_fill("DEPENDENCY",
@@ -456,8 +473,9 @@ tm_shape(mpsz_pop2020)+
           palette = "-Greens") +
   tm_borders(alpha = 0.5)
 ```
-  
+
 ## 2.4.5.1 Legend opptions
+
 ```{r}
 tm_shape(mpsz_pop2020)+
   tm_fill("DEPENDENCY", 
@@ -478,6 +496,7 @@ tm_shape(mpsz_pop2020)+
 ```
 
 ## 2.4.5.2 Map Styles
+
 ```{r}
 tm_shape(mpsz_pop2020)+
   tm_fill("DEPENDENCY", 
@@ -488,6 +507,7 @@ tm_shape(mpsz_pop2020)+
 ```
 
 ## 2.4.5.3 Compass, Scale Bar, Grid lines
+
 ```{r}
 tmap_style("white")
 tm_shape(mpsz_pop2020)+
@@ -510,7 +530,9 @@ tm_shape(mpsz_pop2020)+
 ```
 
 ## 2.4.6 Facet maps: stacked chloropleths
-- using `ncols`
+
+-   using `ncols`
+
 ```{r}
 tm_shape(mpsz_pop2020)+
   tm_fill(c("YOUNG", "AGED"),
@@ -521,7 +543,7 @@ tm_shape(mpsz_pop2020)+
   tmap_style("white")
 ```
 
-- defining different styles for colours
+-   defining different styles for colours
 
 ```{r}
 tm_shape(mpsz_pop2020)+ 
@@ -531,7 +553,7 @@ tm_shape(mpsz_pop2020)+
   tm_layout(legend.position = c("right", "bottom"))
 ```
 
-- by `tm_facets()`
+-   by `tm_facets()`
 
 ```{r}
 tm_shape(mpsz_pop2020) +
@@ -548,7 +570,8 @@ tm_shape(mpsz_pop2020) +
   tm_borders(alpha = 0.5)
 ```
 
-- Tesselating using tmap_arrange()
+-   Tesselating using tmap_arrange()
+
 ```{r}
 youngmap <- tm_shape(mpsz_pop2020)+ 
   tm_polygons("YOUNG", 
@@ -563,8 +586,8 @@ agedmap <- tm_shape(mpsz_pop2020)+
 tmap_arrange(youngmap, agedmap, asp=1, ncol=2)
 ```
 
+## 2.4.7 Conditional Spatial Map
 
-## 2.4.7 Conditional Spatial Map 
 ```{r}
 tm_shape(mpsz_pop2020[mpsz_pop2020$REGION_N=="CENTRAL REGION", ])+
   tm_fill("DEPENDENCY", 
