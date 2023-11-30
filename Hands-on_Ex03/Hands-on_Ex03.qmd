@@ -1,0 +1,265 @@
+---
+title: "Hands-on Exercise 3: Processing & Visualizing Flow Data"
+editor: visual
+---
+
+On this page, I address Hands-On Exercise for Lesson 03:
+
+# 1. **Processing & Visualizing Flow Data**
+
+-   Frame: Spatial interactions as flow
+    -   Discrete origin/destination pair
+    -   Encoded as `spatial interaction matrix` or `origin destination matrix`; (row, col) = (origin, destination)
+
+## 1.2 Import packages
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+pacman::p_load(tmap, sf, DT, stplanr,
+               performance,
+               ggpubr, tidyverse)
+```
+
+-   `sf`, `tidyverse`, `tmap` from previous
+-   **NEW:**
+    -   `DT` -
+    -   `stplanar` -
+    -   `performance` -
+    -   `ggpubr` -
+
+## 1.3 Preparing Flow Data
+
+### 1.3.1 Importing O/D Data
+
+-   `/data/geospatial/Hunan.###`: This csv is *"Passenger Volume by Origin Destination Bus Stops"*, via [LTA Datamall](https://datamall.lta.gov.sg/content/datamall/en.html)
+    -   Convert `ORIGIN_PT_CODE` and `DESTINATION_PT_CODE` from numeric to character datatype
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+odbus <- read_csv("data/aspatial/origin_destination_bus_202310.csv")
+odbus$ORIGIN_PT_CODE <- as.factor(odbus$ORIGIN_PT_CODE)
+odbus$DESTINATION_PT_CODE <- as.factor(odbus$DESTINATION_PT_CODE) 
+
+glimpse(odbus)
+```
+
+
+
+
+### 1.3.2 Extracting study data (Weekday Morning Peak)
+
+-   use `filter()` to select rows by:
+    - filter for `"WEEKDAY"` using `$DAY_TYPE` column
+    - filter for tap-on between 0600 and 0900 using `$TIME_PER_HOUR ` column
+- `group_by` identifies O/D flows by bus stop codes
+    - `summarise()` aggregates `$TOTAL_TRIPS` into `$TRIPS`
+- `write_rds()` as R data object for future use
+     - to load, `read`_rds()` 
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+odbus6_9 <- odbus %>%
+  filter(DAY_TYPE == "WEEKDAY") %>%
+  filter(TIME_PER_HOUR >= 6 &
+           TIME_PER_HOUR <= 9) %>%
+  group_by(ORIGIN_PT_CODE,
+           DESTINATION_PT_CODE) %>%
+  summarise(TRIPS = sum(TOTAL_TRIPS))
+
+## save for future use:
+write_rds(odbus6_9, "data/rds/odbus6_9.rds")
+datatable(odbus6_9)
+```
+
+## 1.4 Working with Geospatial Data
+
+
+### 1.4.1 Import geospatial data
+
+-   use `st_read()` to import `BusStop` & `MPSZ-2019` as `sf` dataframe;
+    - `st_transform()` to transform projection to SVY21 / crs3414
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+busstop <- st_read(dsn = "data/geospatial",
+                   layer = "BusStop") %>%
+  st_transform(crs = 3414)
+mpsz <- st_read(dsn = "data/geospatial",
+                   layer = "MPSZ-2019") %>%
+  st_transform(crs = 3414)
+```
+
+-   preview `mpsz`:
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+mpsz
+```
+
+## 1.5. Geospatial Data Wrangling 
+
+- `st_intersection()` to find find overlap of point (e.g. `busstop`) and polygon (e.g. `mpsz`) shapes, creating an `sf` object output
+    - as part of this, non-SG bus stops are dropped as they fall outside SG/`mpsz` boundary
+    - use `select()` to only retain two columns, `$BUS_STOP_N` and `$SUBZONE_C`
+    - `st_drop_geometry()` keeps it a simple dataframe instead of geom sf
+- `datatable()` seems much more useful than `kable()`
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+busstop_mpsz <- st_intersection(busstop, mpsz) %>%
+  select(BUS_STOP_N, SUBZONE_C) %>%
+  st_drop_geometry()
+write_rds(busstop_mpsz, "data/rds/busstop_mpsz.rds")  
+datatable(busstop_mpsz)
+```
+- now we combine planning subzone code to O/D dataset
+    - this specifically creates the `$ORIGIN_SZ` column, we'll need to repeat this for the destination subzone col later
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+od_data <- left_join(odbus6_9 , busstop_mpsz,
+            by = c("ORIGIN_PT_CODE" = "BUS_STOP_N")) %>%
+  rename(ORIGIN_BS = ORIGIN_PT_CODE,
+         ORIGIN_SZ = SUBZONE_C,
+         DESTIN_BS = DESTINATION_PT_CODE)
+```
+
+- We received warning: 
+```
+Warning: Detected an unexpected many-to-many relationship between `x` and `y`.
+```
+- For 'x', makes sense, as we have multiple repeats of `ORIGIN_PT_CODE` (with different `DESTINATION_PT_CODE` pairs)
+- For 'y', this is not surprising; we saw duplicated bus stops in `busstop` dataset.
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+duplicate <- od_data %>%
+  group_by_all() %>%
+  filter(n()>1) %>%
+  ungroup()
+
+cat("Before cleaning, nrows of duplicate: ", paste0(nrow(duplicate)))
+
+od_data <- unique(od_data)
+
+duplicate2 <- od_data %>%
+  group_by_all() %>%
+  filter(n()>1) %>%
+  ungroup()
+cat("\nAfter cleaning, nrows of duplicate: ", paste0(nrow(duplicate2)))
+
+
+```
+
+- on this second step, we create `$DESTIN_SZ` column, repeating from the `$ORIGIN_SZ` step earlier
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+od_data <- left_join(od_data , busstop_mpsz,
+            by = c("DESTIN_BS" = "BUS_STOP_N")) 
+duplicate <- od_data %>%
+  group_by_all() %>%
+  filter(n()>1) %>%
+  ungroup()
+
+
+cat("\nBefore cleaning, nrows of duplicate: ", paste0(nrow(duplicate)))
+
+od_data <- unique(od_data)
+
+
+
+duplicate2 <- od_data %>%
+  group_by_all() %>%
+  filter(n()>1) %>%
+  ungroup()
+cat("\nAfter cleaning, nrows of duplicate: ", paste0(nrow(duplicate2)), "\n")
+
+od_data <- od_data %>%
+  rename(DESTIN_SZ = SUBZONE_C) %>%
+  drop_na() %>%
+  group_by(ORIGIN_SZ, DESTIN_SZ) %>%
+  summarise(MORNING_PEAK = sum(TRIPS))
+write_rds(od_data, "data/rds/od_data.rds")
+# uncomment to load od_data
+# od_data <- read_rds("data/rds/od_data.rds")
+```
+- More repeated destination bus stops (1350) than origin bus stops (1186)
+
+
+
+## 1.6 Visualizing Spatial Interaction
+
+-   Goal is to visualize inter-mpsz zonal flows
+
+### 1.6.1 Removing intra-zonal flows
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+od_data1 <- od_data[od_data$ORIGIN_SZ!=od_data$DESTIN_SZ,]
+```
+
+### 1.6.2 Creating desire lines 
+
+- Aptly named "`od2line`" function for converting od to line object
+    - from [documentation](https://docs.ropensci.org/stplanr/reference/od2line.html), first two columns of `flow` dataframe  needs to correspond to first column of `zones` dataframe
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+flowLine <- od2line(flow = od_data1, 
+                    zones = mpsz,
+                    zone_code = "SUBZONE_C")
+```
+
+### 1.6.3 Visualizing desire lines 
+
+- use `tm_shape()` + `tm_lines` to create flow lines:
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+tm_shape(mpsz) +
+  tm_polygons() +
+flowLine %>%  
+tm_shape() +
+  tm_lines(lwd = "MORNING_PEAK",
+           style = "quantile",
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3)
+```
+
+- Visualizing only flows with trips > 5000
+- I increased the `alpha` to 0.5 for greater visibility
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+tm_shape(mpsz) +
+  tm_polygons() +
+flowLine %>%  
+  filter(MORNING_PEAK >= 5000) %>%
+tm_shape() +
+  tm_lines(lwd = "MORNING_PEAK",
+           style = "quantile",
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.5)
+```
+
+
+
+
+
+
