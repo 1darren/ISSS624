@@ -197,7 +197,7 @@ hunan_GDPPC <- left_join(hunan,hunan2012)%>%
 #  tm_layout(main.title = "GDPPC", main.title.position = "right")
 
 
-tm_shape(hunan) +
+tm_shape(hunan_GDPPC) +
   tm_fill(col = "GDPPC", 
           style = "pretty",
           palette = "Blues",

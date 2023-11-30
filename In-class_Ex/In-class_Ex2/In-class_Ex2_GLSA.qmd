@@ -58,7 +58,7 @@ hunan_GDPPC <- left_join(hunan,hunan2012)%>%
 #  tm_layout(main.title = "GDPPC", main.title.position = "right")
 
 
-tm_shape(hunan) +
+tm_shape(hunan_GDPPC) +
   tm_fill(col = "GDPPC", 
           style = "pretty",
           palette = "Blues",
@@ -94,12 +94,12 @@ wm_q <- hunan_GDPPC %>%
 #| code-fold: true
 #| code-summary: "show code"
 
-moran_i = global_moran(
-  hunan_GDPPC$GDPPC,
-  hunan_GDPPC$nb,
-  hunan_GDPPC$wt
-)
-glimpse(moran_i)
+# moran_i = global_moran(
+#   hunan_GDPPC$GDPPC,
+#   hunan_GDPPC$nb,
+#   hunan_GDPPC$wt
+# )
+# glimpse(moran_i)
 ```
 
 ## Computing Local Moran's I
@@ -114,10 +114,10 @@ glimpse(moran_i)
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
-
-lisa <- wm_q %>%
-  mutate(localmoran = local_moran(GDPPC, nb, wt, nsim=99), 
-         .before = 1) %>%
-  unnest(localmoran)
-glimpse(lisa)
+# 
+# lisa <- wm_q %>%
+#   mutate(localmoran = local_moran(GDPPC, nb, wt, nsim=99), 
+#          .before = 1) %>%
+#   unnest(localmoran)
+# glimpse(lisa)
 ```
