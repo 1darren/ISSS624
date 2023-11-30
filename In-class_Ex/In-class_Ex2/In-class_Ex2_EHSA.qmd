@@ -120,21 +120,21 @@ gi_stars <- GDPPC_nb %>%
 #| code-fold: true
 #| code-summary: "show code"
 
-cbg <- gi_stars %>%
+# cbg <- gi_stars %>%
   
   
-ggplot(data = cbg,
-       ) +
-  geom_line() +
-  theme_light()
-
-
-ehsa <- emerging_hotspot_analysis(
-  x = GDPPC_st,
-  .var = "GDPPC",
-  k = 1,
-  nsim = 99
-)
+# ggplot(data = cbg,
+#        ) +
+#   geom_line() +
+#   theme_light()
+# 
+# 
+# ehsa <- emerging_hotspot_analysis(
+#   x = GDPPC_st,
+#   .var = "GDPPC",
+#   k = 1,
+#   nsim = 99
+# )
 ```
 
 
