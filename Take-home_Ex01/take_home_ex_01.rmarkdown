@@ -6,7 +6,7 @@ editor: source
 
 On this page, I try to pass Prof Kam's class
 
-#     0. Load & Import Relevant Packages
+# 0. Load & Import Relevant Packages
 
 ## 0.1 Load Packages
 
@@ -20,33 +20,35 @@ This function calls pacman to load sf, tidyverse, tmap, knitr packages;
 -   `mapview` : interactive plotting & manipulation
 -   `RColorBrewer` : custom colour palettes for manipulation
 
-
 
 ```{r}
 pacman::p_load(tmap, sf, sfdep, tidyverse, mapview, RColorBrewer)
 ```
 
 
-
 ## 0.2 Import Data
+
 ### 0.2.1 Load Bus Stop Location
 
-- import bus stop geospatial data into `bus_stop_sf`
-    - convert to svy21 dataframe projection
-
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
-raw_bus_stop_sf <- st_read(dsn = "data/geospatial", 
-                 layer = "BusStop") %>%
-  st_transform(crs = 3414)
+-   import bus stop geospatial data into `bus_stop_sf`
 
-# bus_stop_sf$BUS_STOP_N  <- as.factor(bus_stop_sf$BUS_STOP_N )
-mapview_test_points = mapview(raw_bus_stop_sf, cex = 3, alpha = .5, popup = NULL)
-mapview_test_points
-```
+    -   convert to svy21 dataframe projection
+
 
-- How many rows are repeated?
+    ```{r}
+    #| code-fold: true
+    #| code-summary: "show code"
+    raw_bus_stop_sf <- st_read(dsn = "data/geospatial", 
+                     layer = "BusStop") %>%
+      st_transform(crs = 3414)
+
+    # bus_stop_sf$BUS_STOP_N  <- as.factor(bus_stop_sf$BUS_STOP_N )
+    mapview_test_points = mapview(raw_bus_stop_sf, cex = 3, alpha = .5, popup = NULL)
+    mapview_test_points
+    ```
+
+
+-   How many rows are repeated?
 
 
 ```{r}
@@ -57,12 +59,11 @@ cat("\nRepeated bus stops\t\t\t\t:   ", paste0(length(raw_bus_stop_sf$BUS_STOP_N
 ```
 
 
-- It appears there are 16 datapoints that are specifically repeated; let's identify the bus stop numbers with repeated rows:
-    - first we use `filter()` with a pipe mark(using `or` condition) to identify repeated numbers
-    - we sort using `arrange()`
-    - then, using `group_by()` and `row_number()` we add row numbers based on `$BUS_STOP_N`
-    - adding to a new column using  `mutate()`
-
+-   It appears there are 16 datapoints that are specifically repeated; let's identify the bus stop numbers with repeated rows:
+    -   first we use `filter()` with a pipe mark(using `or` condition) to identify repeated numbers
+    -   we sort using `arrange()`
+    -   then, using `group_by()` and `row_number()` we add row numbers based on `$BUS_STOP_N`
+    -   adding to a new column using `mutate()`
 
 
 ```{r}
@@ -78,10 +79,10 @@ repeated_df
 ```
 
 
-- Let's examine these bus stops on the map;
-    - we use `mapview()` to display these repeated bus stops on the map
-    - we use `zcol=$BUS_STOP_N` to give each bus stop an individual colour
-    - we used `colorRampPalette` to expand the palette to 16 different colours
+-   Let's examine these bus stops on the map;
+    -   we use `mapview()` to display these repeated bus stops on the map
+    -   we use `zcol=$BUS_STOP_N` to give each bus stop an individual colour
+    -   we used `colorRampPalette` to expand the palette to 16 different colours
 
 
 ```{r}
@@ -95,38 +96,41 @@ mapview_repeated
 ```
 
 
-- At this stage, there are 32 entries for 16 bus stops, each with repeated locations
+-   At this stage, there are 32 entries for 16 bus stops, each with repeated locations
 
-- First, we perform some manual cleaning;
-    - 
+-   First, we perform some manual cleaning;
+
+    -   
+
 
-```{r}
-drop_second_stop = c("43709", "51071", "53041", "52059", "58031", "68091", "68099", "97079")
-rows_to_retain_df <- repeated_df %>%
-  filter(
-    case_when(
-      BUS_STOP_N == "11009" & grepl("[a-z]", LOC_DESC) ~ FALSE,
-      BUS_STOP_N == "22501" & grepl("[a-z]", LOC_DESC) ~ FALSE,
-      BUS_STOP_N == "77329" & grepl("[a-z]", LOC_DESC) ~ FALSE,
-      BUS_STOP_N == "82221" & grepl("[a-z]", LOC_DESC) ~ FALSE,
-      BUS_STOP_N == "62251" & grepl("[a-z]", LOC_DESC) ~ FALSE,
-      BUS_STOP_N == "96319" & grepl("[a-z]", LOC_DESC) ~ FALSE,
-      
-      BUS_STOP_N == "67421" & BUS_ROOF_N == "NIL" ~ FALSE,
-      BUS_STOP_N %in% drop_second_stop & RowNumber == 2 ~ FALSE,
-      BUS_STOP_N == "47201" & is.na(LOC_DESC) ~ FALSE,
-      TRUE ~ TRUE
-    )
-  )
+    ```{r}
+    drop_second_stop = c("43709", "51071", "53041", "52059", "58031", "68091", "68099", "97079")
+    rows_to_retain_df <- repeated_df %>%
+      filter(
+        case_when(
+          BUS_STOP_N == "11009" & grepl("[a-z]", LOC_DESC) ~ FALSE,
+          BUS_STOP_N == "22501" & grepl("[a-z]", LOC_DESC) ~ FALSE,
+          BUS_STOP_N == "77329" & grepl("[a-z]", LOC_DESC) ~ FALSE,
+          BUS_STOP_N == "82221" & grepl("[a-z]", LOC_DESC) ~ FALSE,
+          BUS_STOP_N == "62251" & grepl("[a-z]", LOC_DESC) ~ FALSE,
+          BUS_STOP_N == "96319" & grepl("[a-z]", LOC_DESC) ~ FALSE,
+          
+          BUS_STOP_N == "67421" & BUS_ROOF_N == "NIL" ~ FALSE,
+          BUS_STOP_N %in% drop_second_stop & RowNumber == 2 ~ FALSE,
+          BUS_STOP_N == "47201" & is.na(LOC_DESC) ~ FALSE,
+          TRUE ~ TRUE
+        )
+      )
 
-rows_to_retain_df$LOC_DESC  = toupper(rows_to_retain_df$LOC_DESC)
+    rows_to_retain_df$LOC_DESC  = toupper(rows_to_retain_df$LOC_DESC)
 
-print("Printing rows to retain:")
-rows_to_retain_df
+    print("Printing rows to retain:")
+    rows_to_retain_df
 
-```
+    ```
 
-- Confirming rows to retain:
+
+-   Confirming rows to retain:
 
 
 ```{r}
@@ -135,7 +139,7 @@ cat("\nNumber of unique bus stop IDs in `repeated_df`: ",paste0(length(unique(re
 ```
 
 
-- Now we repeat the steps on `raw_bus_stop_sf`
+-   Now we repeat the steps on `raw_bus_stop_sf`
 
 
 ```{r}
@@ -162,8 +166,7 @@ bus_stop_sf
 ```
 
 
-
-- Cleaning worked for `bus_stop_sf`
+-   Cleaning worked for `bus_stop_sf`
 
 
 ```{r}
@@ -177,7 +180,6 @@ cat("\n>> Number of unique bus stop IDs\t: ", paste0(length(unique(bus_stop_sf$B
 
 ```
 
-
 
 ### 0.2.2 Generate Hexes
 
@@ -235,9 +237,8 @@ map_hexagon_sf
 ```
 
 
-- Count number of hexes
-- Check biggest IDs
-
+-   Count number of hexes
+-   Check biggest IDs
 
 
 ```{r}
@@ -250,6 +251,7 @@ cat("\nPrinting map_hexagon_sf:\n >> ")
 hexagon_sf[hexagon_sf$n_bus_stops > 10, ]
 ```
 
+
 ### 0.3.1 Load Bus Trip Data
 
 
@@ -269,7 +271,9 @@ odbus_2308$DESTINATION_PT_CODE <- as.factor(odbus_2308$DESTINATION_PT_CODE)
 glimpse(odbus_2308)
 ```
 
-- sanity check number of distinct bus stops over months
+
+-   sanity check number of distinct bus stops over months
+
 
 ```{r}
 
@@ -294,7 +298,8 @@ cat("Confirm distinct origin bus stops 23-10: \n>> ", paste(length(unique(odbus_
 
 ```
 
-First we split out weekday and then perform mutate to group by 
+
+First we split out weekday and then perform mutate to group by
 
 
 ```{r}
@@ -335,7 +340,7 @@ odbus_filtered
 ```
 
 
-Sanity check, number of distinct bus stops? 
+Sanity check, number of distinct bus stops?
 
 
 ```{r}
@@ -365,8 +370,7 @@ cat("\nConfirm distinct bus stops in `bus_stop_sf`: \n>> ", paste(length(unique(
 ```
 
 
-
-- Test to reproduce `01013` bus stop with 841 trips on weekday mornings
+-   Test to reproduce `01013` bus stop with 841 trips on weekday mornings
 
 
 ```{r}
@@ -384,10 +388,9 @@ subset_df
 ```
 
 
-
 ## Create bus_stop_hexgrid_id
-- Combine hexagon_sf with bus_stop_sf
 
+-   Combine hexagon_sf with bus_stop_sf
 
 
 ```{r}
@@ -405,11 +408,9 @@ bus_stop_hexgrid_id
 ```
 
 
-
-
 ## Combine bus_stop_hexgrid_id with trip details
-- Combine bus_stop_hexgrid_id with odbus_filtered
 
+-   Combine bus_stop_hexgrid_id with odbus_filtered
 
 
 ```{r}
@@ -433,9 +434,7 @@ grid_trips_df
 ```
 
 
-## Left join back to hexagon_df  
-
-
+## Left join back to hexagon_df
 
 
 ```{r}
@@ -455,9 +454,8 @@ hexagon_sf_2
 ```
 
 
-- Now to try to do data analysis
-- In my defense, I emailed prof kam for DAL notes but he ignroed me for 6 months
-
+-   Now to try to do data analysis
+-   In my defense, I emailed prof kam for DAL notes but he ignroed me for 6 months
 
 
 ```{r}
@@ -494,6 +492,7 @@ colnames(hexagon_sf_2)
 
 ```
 
+
 ## Map hexes on SIngapore
 
 
@@ -502,17 +501,22 @@ colnames(hexagon_sf_2)
 #| code-summary: "show code"
 
 sarb_sf <- st_read(dsn = "data/geospatial", 
-                 layer = "singapore_administrative_region_boundaries") %>%
+                 layer = "Subzone_Census2010") %>%
   st_transform(crs = 3414)
 tmap_options(check.and.fix = TRUE)
 qtm(sarb_sf)
-## Additional data from: https://map.igismap.com/
+
+## Additional data from: Data.gov.sg, https://beta.data.gov.sg/datasets/d_02cba6aeeed323b5f6c723527757c0bc/view
 ```
+
+
+::: panel-tabset
+## weekday_morning_vis
+
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
-
 
 weekday_morning_vis <- tm_shape(sarb_sf) +
   tm_polygons() + 
@@ -521,6 +525,17 @@ weekday_morning_vis <- tm_shape(sarb_sf) +
           style = "quantile", 
           palette = "Blues",
           title = "Number of trips")
+weekday_morning_vis
+```
+
+
+## weekday_afternoon_vis
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
 weekday_afternoon_vis <- tm_shape(sarb_sf) +
   tm_polygons() + 
   tm_shape(hexagon_sf_2) + 
@@ -528,6 +543,13 @@ weekday_afternoon_vis <- tm_shape(sarb_sf) +
           style = "quantile", 
           palette = "Greens",
           title = "Dependency ratio")
+```
+
+
+## weekend_morning_vis
+
+
+```{r}
 weekend_morning_vis <- tm_shape(sarb_sf) +
   tm_polygons() + 
   tm_shape(hexagon_sf_2) + 
@@ -535,6 +557,17 @@ weekend_morning_vis <- tm_shape(sarb_sf) +
           style = "quantile", 
           palette = "Reds",
           title = "Dependency ratio")
+weekend_morning_vis
+```
+
+
+## weekend_evenings_vis
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
 weekend_evenings_vis <- tm_shape(sarb_sf) +
   tm_polygons() + 
   tm_shape(hexagon_sf_2) + 
@@ -542,11 +575,11 @@ weekend_evenings_vis <- tm_shape(sarb_sf) +
           style = "quantile", 
           palette = "Oranges",
           title = "Dependency ratio")
-
-tmap_arrange(weekday_morning_vis, weekend_morning_vis,
-             weekday_afternoon_vis, weekend_evenings_vis,
-             nrow = 2, asp = 2)
+weekend_evenings_vis
 ```
+
+:::
+
 
 ```{r}
 #| code-fold: true
@@ -592,8 +625,6 @@ tmap_arrange(weekday_morning_ss, weekend_morning_ss,
 ```
 
 
-
-
 ## Plot Weekday Morning
 
 
@@ -606,7 +637,6 @@ mapview(hexagon_sf_2, zcol="WEEKDAY_MORNING_TRIPS", cex = 3, alpha = .5, popup =
 
 ```
 
-
 
 ## Plot Weekday Afternoons
 
@@ -621,7 +651,6 @@ mapview(hexagon_sf_2, zcol="WEEKDAY_AFTERNOON_TRIPS", cex = 3, alpha = .5, popup
 ```
 
 
-
 ## Plot Weekend Morning
 
 
@@ -634,7 +663,6 @@ mapview(hexagon_sf_2, zcol="WEEKEND_MORNING_TRIPS", cex = 3, alpha = .5, popup =
 
 ```
 
-
 
 ## Plot Weekend Afternoons
 
@@ -649,8 +677,6 @@ mapview(hexagon_sf_2, zcol="WEEKEND_EVENING_TRIPS", cex = 3, alpha = .5, popup =
 ```
 
 
-
-
 ::: callout-note
 ## **Quiz**: What statistical conclusion can you draw from the output above?
 
@@ -658,7 +684,7 @@ mapview(hexagon_sf_2, zcol="WEEKEND_EVENING_TRIPS", cex = 3, alpha = .5, popup =
 -   knn=8 feels like it's not very logical, but maybe there's not too much difference
 :::
 
-# 2. Create LISA 
+# 2. Create LISA
 
 ## Create Queen contiguity weight matrix hex
 
@@ -671,8 +697,6 @@ summary(wm_hex)
 
 ```
 
-
-
 
 ## Create Queen contiguity
 
@@ -699,6 +723,7 @@ vis_excluded_hexes
 ## Drop JB Bus Stop
 
 ### Find Northernmost point: JB Bus stop
+
 
 ```{r}
 #| code-fold: true
@@ -714,9 +739,8 @@ northernmost_point # 46239
 ```
 
 
-
-
 ### Identify the hex to drop
+
 
 ```{r}
 #| code-fold: true
@@ -728,9 +752,8 @@ hexagon_sf_2_drop_jb <-
 ```
 
 
-
-
 ### Now we figure out distance; first find centroid
+
 
 ```{r}
 #| code-fold: true
@@ -750,8 +773,8 @@ summary(k1dists)
 ```
 
 
-- 2km is a huge distance -- we would enmesh hexes to about 4 hexes away 
-- bus stops are 
+-   2km is a huge distance -- we would enmesh hexes to about 4 hexes away
+-   bus stops are
 
 
 ```{r}
@@ -774,9 +797,8 @@ vis_faraway_hex
 ```
 
 
-
-
 ### Find Northernmost point: Changi Naval Base Point
+
 
 ```{r}
 #| code-fold: true
@@ -795,6 +817,7 @@ easternmost_point # 96439
 
 
 ### Identify the hex to drop
+
 
 ```{r}
 #| code-fold: true
@@ -812,9 +835,10 @@ summary(k1dists_2)
 ```
 
 
-- A much more manageable 1km; two hexes away. Let's work with this.
+-   A much more manageable 1km; two hexes away. Let's work with this.
 
 ### Now we figure out distance; first find centroid
+
 
 ```{r}
 #| code-fold: true
@@ -829,13 +853,8 @@ head(hex_1km_wt, 5)
 ```
 
 
-
-
-
-
-
-
 ### Calculate Local Moran's I
+
 
 ```{r}
 #| code-fold: true
@@ -848,9 +867,8 @@ hexagon_sf_local_moran <- cbind(hexagon_sf_2_drop_changi,localMI_day_morn)
 ```
 
 
-
-
 ### Identify the hex to drop
+
 
 ```{r}
 #| code-fold: true
@@ -882,8 +900,8 @@ tmap_arrange(local_moran_stats,
 ```
 
 
+-   But we only want to see the ones with p \< 0.05, so we need to do some cleaning
 
-- But we only want to see the ones with p < 0.05, so we need to do some cleaning
 
 ```{r}
 #| code-fold: true
@@ -908,12 +926,8 @@ local_moran_stats_sig
 ```
 
 
-
-
-
-
-
 ### Moran Scatterplot
+
 
 ```{r}
 #| code-fold: true
@@ -933,9 +947,8 @@ ggplot(hexagon_sf_local_moran, aes(WEEKDAY_MORNING_TRIPS, trips_lag)) +
 ```
 
 
+### Plot Local Moran's
 
-
-### Identify the hex to drop
 
 ```{r}
 #| code-fold: true
