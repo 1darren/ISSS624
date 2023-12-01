@@ -39,6 +39,118 @@
     "href": "Hands-on_Ex03/Hands-on_Ex03.html#visualizing-spatial-interaction",
     "title": "Hands-on Exercise 3: Processing & Visualizing Flow Data",
     "section": "1.6 Visualizing Spatial Interaction",
-    "text": "1.6 Visualizing Spatial Interaction\n\nGoal is to visualize inter-mpsz zonal flows\n\n\n1.6.1 Removing intra-zonal flows\n\n\nshow code\nod_data1 &lt;- od_data[od_data$ORIGIN_SZ!=od_data$DESTIN_SZ,]\nglimpse(od_data1)\n\n\nRows: 20,787\nColumns: 3\nGroups: ORIGIN_SZ [310]\n$ ORIGIN_SZ    &lt;chr&gt; \"AMSZ01\", \"AMSZ01\", \"AMSZ01\", \"AMSZ01\", \"AMSZ01\", \"AMSZ01…\n$ DESTIN_SZ    &lt;chr&gt; \"AMSZ02\", \"AMSZ03\", \"AMSZ04\", \"AMSZ05\", \"AMSZ06\", \"AMSZ07…\n$ MORNING_PEAK &lt;dbl&gt; 10591, 14980, 3106, 7734, 2306, 1824, 2734, 2300, 164, 93…\n\n\n\n\n1.6.2 Creating desire lines\n\nAptly named “od2line” function for converting od to line object\n\nfrom documentation, first two columns of flow dataframe needs to correspond to first column of zones dataframe\n\n\n\n\nshow code\nflowLine &lt;- od2line(flow = od_data1, \n                    zones = mpsz,\n                    zone_code = \"SUBZONE_C\")\n\n\nCreating centroids representing desire line start and end points.\n\n\n\n\n1.6.3 Visualizing desire lines\n\nuse tm_shape() + tm_lines to create flow lines:\n\n\n\nshow code\ntm_shape(mpsz) +\n  tm_polygons() +\nflowLine %&gt;%  \ntm_shape() +\n  tm_lines(lwd = \"MORNING_PEAK\",\n           style = \"quantile\",\n           scale = c(0.1, 1, 3, 5, 7, 10),\n           n = 6,\n           alpha = 0.3)\n\n\nWarning in g$scale * (w_legend/maxW): longer object length is not a multiple of\nshorter object length\n\n\nWarning in g$scale * (x/maxW): longer object length is not a multiple of\nshorter object length\n\n\n\n\n\n\nVisualizing only flows with trips &gt; 5000\nI increased the alpha to 0.5 for greater visibility\n\n\n\nshow code\ntm_shape(mpsz) +\n  tm_polygons() +\nflowLine %&gt;%  \n  filter(MORNING_PEAK &gt;= 5000) %&gt;%\ntm_shape() +\n  tm_lines(lwd = \"MORNING_PEAK\",\n           style = \"quantile\",\n           scale = c(0.1, 1, 3, 5, 7, 10),\n           n = 6,\n           alpha = 0.5)\n\n\nWarning in g$scale * (w_legend/maxW): longer object length is not a multiple of\nshorter object length\n\n\nWarning in g$scale * (x/maxW): longer object length is not a multiple of\nshorter object length"
+    "text": "1.6 Visualizing Spatial Interaction\n\nGoal is to visualize inter-mpsz zonal flows\n\n\n1.6.1 Removing intra-zonal flows\n\n\nshow code\nod_data1 &lt;- od_data[od_data$ORIGIN_SZ!=od_data$DESTIN_SZ,]\nglimpse(od_data1)\n\n\nRows: 20,787\nColumns: 3\nGroups: ORIGIN_SZ [310]\n$ ORIGIN_SZ    &lt;chr&gt; \"AMSZ01\", \"AMSZ01\", \"AMSZ01\", \"AMSZ01\", \"AMSZ01\", \"AMSZ01…\n$ DESTIN_SZ    &lt;chr&gt; \"AMSZ02\", \"AMSZ03\", \"AMSZ04\", \"AMSZ05\", \"AMSZ06\", \"AMSZ07…\n$ MORNING_PEAK &lt;dbl&gt; 10591, 14980, 3106, 7734, 2306, 1824, 2734, 2300, 164, 93…\n\n\n\n\n1.6.2 Creating desire lines\n\nAptly named “od2line” function for converting od to line object\n\nfrom documentation, first two columns of flow dataframe needs to correspond to first column of zones dataframe\n\n\n\n\nshow code\nflowLine &lt;- od2line(flow = od_data1, \n                    zones = mpsz,\n                    zone_code = \"SUBZONE_C\")\n\n\nCreating centroids representing desire line start and end points.\n\n\n\n\n1.6.3 Visualizing desire lines\n\nuse tm_shape() + tm_lines to create flow lines:\n\nCOMMENTED OUT: This takes too long to run, and results in a black blob of lines that are hard to read. 1000+ lines are drawn to be rendered, which is\n\n\n\n\nshow code\n# tm_shape(mpsz) +\n#   tm_polygons() +\n# flowLine %&gt;%  \n# tm_shape() +\n#   tm_lines(lwd = \"MORNING_PEAK\",\n#            style = \"quantile\",\n#            scale = c(0.1, 1, 3, 5, 7, 10),\n#            n = 6,\n#            alpha = 0.3)\n\n\n\nVisualizing only flows with trips &gt; 5000\nI increased the alpha to 0.5 for greater visibility\n\n\n\nshow code\ntm_shape(mpsz) +\n  tm_polygons() +\nflowLine %&gt;%  \n  filter(MORNING_PEAK &gt;= 5000) %&gt;%\ntm_shape() +\n  tm_lines(lwd = \"MORNING_PEAK\",\n           style = \"quantile\",\n           # scale = c(0.1, 1, 3, 5, 7, 10),\n           n = 6,\n           alpha = 0.5)"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "",
+    "text": "This function calls pacman to load sf, tidyverse, tmap packages; - tmap : For thematic mapping - sf : for geospatial data handling - tidyverse : for non-spatial data handling\n\npacman::p_load(tmap, sf, tidyverse)\n\n\n\n\n\n\n\nAdditional Notes\n\n\n\n\n\n\nIn the ‘old days’, the library-import would have been written thus:\n\nlibrary(tmap)\nlibrary(sf)\nlibrary(tidyverse)"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#getting-started---import-packages",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#getting-started---import-packages",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "",
+    "text": "This function calls pacman to load sf, tidyverse, tmap packages; - tmap : For thematic mapping - sf : for geospatial data handling - tidyverse : for non-spatial data handling\n\npacman::p_load(tmap, sf, tidyverse)\n\n\n\n\n\n\n\nAdditional Notes\n\n\n\n\n\n\nIn the ‘old days’, the library-import would have been written thus:\n\nlibrary(tmap)\nlibrary(sf)\nlibrary(tidyverse)"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#preparing-the-flow-data",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#preparing-the-flow-data",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Preparing the Flow Data",
+    "text": "Preparing the Flow Data\n\nImporting the Origin/Destination (O/D) Data\nFirstly, we will import the Passenger volume by Origin/Destination Bus Stops dataset downloaded by LTA Datamall by using read_csv() of readr package.\n\n\nShow the code\nodbus &lt;- read_csv(\"data/aspatial/origin_destination_bus_202308.csv\")\n\n\n\n\n\n\n\n\nLearneR notes\n\n\n\n\n\n\nNB: Here, we use relative paths, which is helpful for Rstudio, HTML rendering etc\n\nThis works because current file (“In-class_Ex1.qmd”) is in the same subdirectory level as /data file\nIn the “Olde Style”, we would specify data directories\n\nIn “Environment” window, clicking white triangle beside ODBUS gives an .info() of the odbus dataframe; easier than using str (structure) command\n\nCan also open folder in R to review for quick inspection;\nRemember to close after use to avoid\n\n\n\n\n\n\n\nodbus$ORIGIN_PT_CODE &lt;- as.factor(odbus$ORIGIN_PT_CODE)\nodbus$DESTINATION_PT_CODE &lt;- as.factor(odbus$DESTINATION_PT_CODE)\n\n\n\n\n\n\n\nLearneR notes\n\n\n\n\n\n\nCommand changes two columns into factor datatype; categorical variable stored as integer\n\n\n\n\n\norigtrip_7_9 &lt;- odbus %&gt;% \n  filter(DAY_TYPE == \"WEEKDAY\")  %&gt;% \n  filter(TIME_PER_HOUR &gt;= 7 & TIME_PER_HOUR &lt;= 9)  %&gt;% \n  group_by(ORIGIN_PT_CODE)  %&gt;% \n  summarise(TRIPS = sum(TOTAL_TRIPS))\norigtrip_7_9\n\n# A tibble: 5,015 × 2\n   ORIGIN_PT_CODE TRIPS\n   &lt;fct&gt;          &lt;dbl&gt;\n 1 01012           1617\n 2 01013            813\n 3 01019           1620\n 4 01029           2383\n 5 01039           2727\n 6 01059           1415\n 7 01109            115\n 8 01112           7675\n 9 01113           8074\n10 01119           3913\n# ℹ 5,005 more rows\n\n\n\n\n\n\n\n\nLearneR notes\n\n\n\n\n\n\n%&gt;% Pipe function; chains together several operations in sequence to allow for multi-filter\n\nCode filters from odbus to …\n\n\nFilter by WEEKDAY\nTIME_PER_HOUR between 7 to 9 inclusive (eg 0700 to 0959)\nCreates a table, grouped by ORIGIN_PT_CODE…\n…with a fourth summary column, TRIPS, created as a sum of TOTAL_TRIPS"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#extracting-the-study-data",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#extracting-the-study-data",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Extracting the Study Data",
+    "text": "Extracting the Study Data\n\nbusstop &lt;- st_read(dsn = \"data/geospatial\", \n                   layer = \"BusStop\") %&gt;%\n  st_transform(crs = 3414)\n\nReading layer `BusStop' from data source \n  `C:\\1darren\\ISSS624\\In-class_Ex\\In-class_Ex1\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 5161 features and 3 fields\nGeometry type: POINT\nDimension:     XY\nBounding box:  xmin: 3970.122 ymin: 26482.1 xmax: 48284.56 ymax: 52983.82\nProjected CRS: SVY21\n\nmpsz &lt;- st_read(dsn = \"data/geospatial\", \n                layer = \"MPSZ-2019\") %&gt;%\n  st_transform(crs = 3414)\n\nReading layer `MPSZ-2019' from data source \n  `C:\\1darren\\ISSS624\\In-class_Ex\\In-class_Ex1\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 332 features and 6 fields\nGeometry type: MULTIPOLYGON\nDimension:     XY\nBounding box:  xmin: 103.6057 ymin: 1.158699 xmax: 104.0885 ymax: 1.470775\nGeodetic CRS:  WGS 84\n\n\n\nBUSSTOP$GEOMETRY: Binary Large Object Field; defines coordinate for each bus-stop\n\nTypical cell of dataframe is either INT or CHAR\nBLOF allows to store a list; POINT(lat, long)\n\nMPSZ$GEOMETRYis instead a multipolygon; a list of 300 x 2 coordinates\nIMPORTANT: There are two different coordinates system;\n\nMost GML, KML, data.gov are in wgs84, decimal degree data format\nWe should change to svy21\nCRS: coordinate system of Singapore; cahnge to metres\n\nNow we can join odbus (bus stop code) and busstop (coordinates) and also master plan subzone (mpsz) ## Working with Geospatial Data"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#importing-geospatial-data",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#importing-geospatial-data",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Importing Geospatial Data",
+    "text": "Importing Geospatial Data"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#geospatial-data-wrangling",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#geospatial-data-wrangling",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Geospatial Data Wrangling",
+    "text": "Geospatial Data Wrangling"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#combining-bus-stop-mpsz",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#combining-bus-stop-mpsz",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Combining Bus Stop & MPSZ",
+    "text": "Combining Bus Stop & MPSZ"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#visualizing-the-geospatial-data",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#visualizing-the-geospatial-data",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Visualizing the Geospatial Data",
+    "text": "Visualizing the Geospatial Data"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#viewing-the-subzone-spatial-file",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#viewing-the-subzone-spatial-file",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Viewing the Subzone Spatial File",
+    "text": "Viewing the Subzone Spatial File"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#personal-notes",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#personal-notes",
+    "title": "In-class Exercise 1: My First Date with Geospatial Data Analytics",
+    "section": "Personal Notes",
+    "text": "Personal Notes\n\nODBus Structure\n\n7 columns;\ntime_per_hour: hour of travel\norigin_pt_code, destination_pt_code: per bus-trip; change-bus counted as 2 trips\ntotal_trips: number of passengers moving between startpoint/endpoint, during that hour\nIssue: no explicit location, only bus stop code; can we reconcile bus-stop-code with geospatial data?\nyes:"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html",
+    "title": "In-class Exercise 2: Spatial",
+    "section": "",
+    "text": "This function calls pacman to load sf, tidyverse, tmap, knitr packages;\n\ntmap : For thematic mapping; powerful mapping package\nsf : for geospatial data handling, but also geoprocessing: buffer, point-in-polygon count, etc\n\nbatch processing over GIS packages; can handle tibble format\n\nsfdep : creates space-time cube, EHSA; replaces spdep\ntidyverse : for non-spatial data handling; commonly used R package\nknitr : generates html table\n\n\npacman::p_load(tmap, sf, sfdep, tidyverse, knitr)\n\n\n\n\n\nHunan: geospatial dataset in ESRI shapefile format\n\nuse of st_read() to import assf data.frame\n\n$geometry column is actually a list inside the df cell; that’s the power of the tibble dataframe\n“features” of simple features refers to geometric features eg point line curve etc\n\nnote projection is WGS84; see `88\n\nhunan2012: attribute format in csv format\n\nuse of read_csv() astbl_df data.frame\n\n!IMPORTANT! to retain geometry, you must left join to the sf dataframe (eg you can also hunan2012 right join hunan)\n\nwithout sf dataframe, normal tibble dataframe will drop the geometry column\n\n\n\n\nshow code\nhunan &lt;- st_read(dsn = \"data/geospatial\", \n                 layer = \"Hunan\")\n\n\nReading layer `Hunan' from data source \n  `C:\\1darren\\ISSS624\\In-class_Ex\\In-class_Ex2\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 88 features and 7 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812\nGeodetic CRS:  WGS 84\n\n\nshow code\nhunan2012 &lt;- read_csv(\"data/aspatial/Hunan_2012.csv\")\nhunan_GDPPC &lt;- left_join(hunan,hunan2012)%&gt;%\n  select(1:4, 7, 15)\n\n\n\n\n\n\nshow code\n#qtm(hunan, \"GDPPC\") +\n#  tm_layout(main.title = \"GDPPC\", main.title.position = \"right\")\n\n\ntm_shape(hunan_GDPPC) +\n  tm_fill(col = \"GDPPC\", \n          style = \"pretty\",\n          palette = \"Blues\",\n          title = \"GDPPC\") +\n  tm_borders(alpha = 0.5) +\n  tm_layout(main.title = \"GDPPC\",\n            inner.margins = c(0.1, 0.1, 0.1, 0.1),\n            outer.margins = c(0.1, 0.1, 0.1, 0.1)\n            ) + \n  tm_grid(alpha = ) \n\n\n\n\n\n\n\n\n\n\nmutate is function that creates new column from previous column datas\n\nst_contiguity creates nb neighbour matrix (QUEEN contiguity, by default)\nst_weights creates row-standardised weights (style=\"W\") from nb object\nOne-step function using sfdep; a wrapper for spdep but writes output into sf dataframe\n\n\n\n\nshow code\nwm_q &lt;- hunan_GDPPC %&gt;%\n  mutate(nb = st_contiguity(geometry), \n         wt = st_weights(nb, style = \"W\"),\n         .before = 1)\n\n\n\n\n\n\nbelow is “old_style”\n\n\n\nshow code\n# moran_i = global_moran(\n#   hunan_GDPPC$GDPPC,\n#   hunan_GDPPC$nb,\n#   hunan_GDPPC$wt\n# )\n# glimpse(moran_i)\n\n\n\n\n\n\nMonte Carlo: simulation more accurate, calculate Local Moran’s I using\nunnest is needed to turn the output of local_moran into individual columns in lisa\n\nlocal_moran will create a group table; a separate list of columns that’s hard to read\n\nseveral high/low options for Moran’s I\n\n$mean is default;\n$median can be used if distribution is highly skewed (eg skew high == biased to right)\n\n\n\n\nshow code\n# \n# lisa &lt;- wm_q %&gt;%\n#   mutate(localmoran = local_moran(GDPPC, nb, wt, nsim=99), \n#          .before = 1) %&gt;%\n#   unnest(localmoran)\n# glimpse(lisa)"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#getting-started---import-packages",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#getting-started---import-packages",
+    "title": "In-class Exercise 2: Spatial",
+    "section": "",
+    "text": "This function calls pacman to load sf, tidyverse, tmap, knitr packages;\n\ntmap : For thematic mapping; powerful mapping package\nsf : for geospatial data handling, but also geoprocessing: buffer, point-in-polygon count, etc\n\nbatch processing over GIS packages; can handle tibble format\n\nsfdep : creates space-time cube, EHSA; replaces spdep\ntidyverse : for non-spatial data handling; commonly used R package\nknitr : generates html table\n\n\npacman::p_load(tmap, sf, sfdep, tidyverse, knitr)"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#loading-the-data",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#loading-the-data",
+    "title": "In-class Exercise 2: Spatial",
+    "section": "",
+    "text": "Hunan: geospatial dataset in ESRI shapefile format\n\nuse of st_read() to import assf data.frame\n\n$geometry column is actually a list inside the df cell; that’s the power of the tibble dataframe\n“features” of simple features refers to geometric features eg point line curve etc\n\nnote projection is WGS84; see `88\n\nhunan2012: attribute format in csv format\n\nuse of read_csv() astbl_df data.frame\n\n!IMPORTANT! to retain geometry, you must left join to the sf dataframe (eg you can also hunan2012 right join hunan)\n\nwithout sf dataframe, normal tibble dataframe will drop the geometry column\n\n\n\n\nshow code\nhunan &lt;- st_read(dsn = \"data/geospatial\", \n                 layer = \"Hunan\")\n\n\nReading layer `Hunan' from data source \n  `C:\\1darren\\ISSS624\\In-class_Ex\\In-class_Ex2\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 88 features and 7 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812\nGeodetic CRS:  WGS 84\n\n\nshow code\nhunan2012 &lt;- read_csv(\"data/aspatial/Hunan_2012.csv\")\nhunan_GDPPC &lt;- left_join(hunan,hunan2012)%&gt;%\n  select(1:4, 7, 15)\n\n\n\n\n\n\nshow code\n#qtm(hunan, \"GDPPC\") +\n#  tm_layout(main.title = \"GDPPC\", main.title.position = \"right\")\n\n\ntm_shape(hunan_GDPPC) +\n  tm_fill(col = \"GDPPC\", \n          style = \"pretty\",\n          palette = \"Blues\",\n          title = \"GDPPC\") +\n  tm_borders(alpha = 0.5) +\n  tm_layout(main.title = \"GDPPC\",\n            inner.margins = c(0.1, 0.1, 0.1, 0.1),\n            outer.margins = c(0.1, 0.1, 0.1, 0.1)\n            ) + \n  tm_grid(alpha = )"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#deriving-queen-contiguity-weights",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#deriving-queen-contiguity-weights",
+    "title": "In-class Exercise 2: Spatial",
+    "section": "",
+    "text": "mutate is function that creates new column from previous column datas\n\nst_contiguity creates nb neighbour matrix (QUEEN contiguity, by default)\nst_weights creates row-standardised weights (style=\"W\") from nb object\nOne-step function using sfdep; a wrapper for spdep but writes output into sf dataframe\n\n\n\n\nshow code\nwm_q &lt;- hunan_GDPPC %&gt;%\n  mutate(nb = st_contiguity(geometry), \n         wt = st_weights(nb, style = \"W\"),\n         .before = 1)"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#computing-global-morans-i",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#computing-global-morans-i",
+    "title": "In-class Exercise 2: Spatial",
+    "section": "",
+    "text": "below is “old_style”\n\n\n\nshow code\n# moran_i = global_moran(\n#   hunan_GDPPC$GDPPC,\n#   hunan_GDPPC$nb,\n#   hunan_GDPPC$wt\n# )\n# glimpse(moran_i)"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#computing-local-morans-i",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#computing-local-morans-i",
+    "title": "In-class Exercise 2: Spatial",
+    "section": "",
+    "text": "Monte Carlo: simulation more accurate, calculate Local Moran’s I using\nunnest is needed to turn the output of local_moran into individual columns in lisa\n\nlocal_moran will create a group table; a separate list of columns that’s hard to read\n\nseveral high/low options for Moran’s I\n\n$mean is default;\n$median can be used if distribution is highly skewed (eg skew high == biased to right)\n\n\n\n\nshow code\n# \n# lisa &lt;- wm_q %&gt;%\n#   mutate(localmoran = local_moran(GDPPC, nb, wt, nsim=99), \n#          .before = 1) %&gt;%\n#   unnest(localmoran)\n# glimpse(lisa)"
   }
 ]
