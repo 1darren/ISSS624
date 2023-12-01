@@ -201,5 +201,33 @@
     "title": "ISSS624",
     "section": "",
     "text": "Welcome to ISSS624 Geospatial Analytics Applications, by 1Darren!\nIn this website, I am going to share with you my learning journey of Geospatial Analytics (under instruction from Prof Kam).\nBecause Rstudio regularly crashes with Quarto when I try to commit, here is a link menu to my exercises:\n\n\n\n\n\n\nHands-on Exercises:\n\n\n\n\nHands-on Exercise 1\nHands-on Exercise 2 parts 1 & 2 - Spatial Weights & Global Measures of Spatial Autocorrelation\n\nHands-on Exercise 2 parts 3 - Local Measures of Spatial Autocorrelation – broken up because Rstudio kept crashing\n\nHands-on Exercise 3\n\n\n\n\n\n\n\n\n\nTake-Home Exercises\n\n\n\n\nTake-home Exercise 1\n\n\n\n\n\n\n\n\n\nIn-class Exercises:\n\n\n\n\nWarning, these are incomplete, Prof Kam rushes through too quickly\nIn-class Exercise 1\nIn-class Exercise 2 Spatial Weights\nIn-class Exercise 2 GLSA\nIn-class Exercise 2 EHSA"
+  },
+  {
+    "objectID": "Take-home_Ex01/take_home_ex_01.html",
+    "href": "Take-home_Ex01/take_home_ex_01.html",
+    "title": "Take-home Exercise 1",
+    "section": "",
+    "text": "On this page, I try to pass Prof Kam’s class"
+  },
+  {
+    "objectID": "Take-home_Ex01/take_home_ex_01.html#load-packages",
+    "href": "Take-home_Ex01/take_home_ex_01.html#load-packages",
+    "title": "Take-home Exercise 1",
+    "section": "0.1 Load Packages",
+    "text": "0.1 Load Packages\nThis function calls pacman to load sf, tidyverse, tmap, knitr packages;\n\ntmap : For thematic mapping; powerful mapping package\nsf : for geospatial data handling, but also geoprocessing: buffer, point-in-polygon count, etc\n\nbatch processing over GIS packages; can handle tibble format\n\nsfdep : creates space-time cube, EHSA; replaces spdep\ntidyverse : for non-spatial data handling; commonly used R package and contains dplyr for dataframe manipulation\nmapview : interactive plotting & manipulation\nRColorBrewer : custom colour palettes for manipulation\n\n\npacman::p_load(tmap, sf, sfdep, tidyverse, mapview, RColorBrewer)"
+  },
+  {
+    "objectID": "Take-home_Ex01/take_home_ex_01.html#import-data",
+    "href": "Take-home_Ex01/take_home_ex_01.html#import-data",
+    "title": "Take-home Exercise 1",
+    "section": "0.2 Import Data",
+    "text": "0.2 Import Data\n\n0.2.1 Load Bus Stop Location\n\nimport bus stop geospatial data into bus_stop_sf\n\nconvert to svy21 dataframe projection\n\n\n\nshow code\nraw_bus_stop_sf &lt;- st_read(dsn = \"data/geospatial\", \n                 layer = \"BusStop\") %&gt;%\n  st_transform(crs = 3414)\n\n\nReading layer `BusStop' from data source \n  `C:\\1darren\\ISSS624\\Take-home_Ex01\\data\\geospatial' using driver `ESRI Shapefile'\nSimple feature collection with 5161 features and 3 fields\nGeometry type: POINT\nDimension:     XY\nBounding box:  xmin: 3970.122 ymin: 26482.1 xmax: 48284.56 ymax: 52983.82\nProjected CRS: SVY21\n\n\nshow code\n# bus_stop_sf$BUS_STOP_N  &lt;- as.factor(bus_stop_sf$BUS_STOP_N )\nmapview_test_points = mapview(raw_bus_stop_sf, cex = 3, alpha = .5, popup = NULL)\nmapview_test_points\n\n\n\n\n\n\nHow many rows are repeated?\n\n\ncat(\"Total number of rows in raw_bus_stop_sf\\t\\t: \", paste0(length(raw_bus_stop_sf$BUS_STOP_N)))\n\nTotal number of rows in raw_bus_stop_sf     :  5161\n\ncat(\"\\nTotal unique bus stop IDs in raw_bus_stop_sf\\t: \", paste0(length(unique(raw_bus_stop_sf$BUS_STOP_N))))\n\n\nTotal unique bus stop IDs in raw_bus_stop_sf    :  5145\n\ncat(\"\\nRepeated bus stops\\t\\t\\t\\t:   \", paste0(length(raw_bus_stop_sf$BUS_STOP_N) - length(unique(raw_bus_stop_sf$BUS_STOP_N))))\n\n\nRepeated bus stops              :    16\n\n\n\nIt appears there are 16 datapoints that are specifically repeated; let’s identify the bus stop numbers with repeated rows:\n\nfirst we use filter() with a pipe mark(using or condition) to identify repeated numbers\nwe sort using arrange()\nthen, using group_by() and row_number() we add row numbers based on $BUS_STOP_N\nadding to a new column using mutate()\n\n\n\n\nshow code\nrepeated_df &lt;- raw_bus_stop_sf %&gt;%\n  filter(duplicated(BUS_STOP_N) | duplicated(BUS_STOP_N, fromLast = TRUE)) %&gt;% \n  arrange(BUS_STOP_N) %&gt;%\n  group_by(BUS_STOP_N) %&gt;%\n  mutate(RowNumber = row_number())\n# repeated_df$BUS_STOP_N  &lt;- as.factor(repeated_df$BUS_STOP_N )\nrepeated_df\n\n\nSimple feature collection with 32 features and 4 fields\nGeometry type: POINT\nDimension:     XY\nBounding box:  xmin: 13488.02 ymin: 32594.17 xmax: 44144.57 ymax: 47934\nProjected CRS: SVY21 / Singapore TM\n# A tibble: 32 × 5\n# Groups:   BUS_STOP_N [16]\n   BUS_STOP_N BUS_ROOF_N LOC_DESC                       geometry RowNumber\n * &lt;chr&gt;      &lt;chr&gt;      &lt;chr&gt;                       &lt;POINT [m]&gt;     &lt;int&gt;\n 1 11009      B04        Ghim Moh Ter        (23101.34 32594.17)         1\n 2 11009      B04-TMNL   GHIM MOH TER        (23100.58 32604.36)         2\n 3 22501      B02        Blk 662A             (13489.09 35536.4)         1\n 4 22501      B02        BLK 662A            (13488.02 35537.88)         2\n 5 43709      B06        BLK 644              (18963.42 36762.8)         1\n 6 43709      B06        BLK 644             (18952.02 36751.83)         2\n 7 47201      UNK        &lt;NA&gt;                (22616.75 47793.68)         1\n 8 47201      NIL        W'LANDS NTH STN        (22632.92 47934)         2\n 9 51071      B21        MACRITCHIE RESERVO… (28311.27 36036.92)         1\n10 51071      B21        MACRITCHIE RESERVO… (28282.54 36033.93)         2\n# ℹ 22 more rows\n\n\n\nLet’s examine these bus stops on the map;\n\nwe use mapview() to display these repeated bus stops on the map\nwe use zcol=$BUS_STOP_N to give each bus stop an individual colour\nwe used colorRampPalette to expand the palette to 16 different colours\n\n\n\n\nshow code\ncust_palette = colorRampPalette(brewer.pal(11, \"Spectral\"))\n\nmapview_repeated = mapview(repeated_df, zcol=\"BUS_STOP_N\", cex = 3, alpha = .5, popup = NULL, col.regions=cust_palette)\nmapview_repeated\n\n\n\n\n\n\n\nAt this stage, there are 32 entries for 16 bus stops, each with repeated locations"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/data/geospatial/MPSZ-2019.html",
+    "href": "In-class_Ex/In-class_Ex1/data/geospatial/MPSZ-2019.html",
+    "title": "ISSS624",
+    "section": "",
+    "text": "&lt;!DOCTYPE qgis PUBLIC ‘http://mrcc.com/qgis.dtd’ ‘SYSTEM’&gt;     dataset\n\n\n        0 0     false"
   }
 ]
