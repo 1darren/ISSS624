@@ -454,5 +454,5 @@ ggplot(data = SIM_data,
 #| code-fold: true
 #| code-summary: "show code"
 
-SIM_data <- read_rds("chap16/data/rds/SIM_data.rds")
+#SIM_data <- read_rds("chap16/data/rds/SIM_data.rds")
 ```
