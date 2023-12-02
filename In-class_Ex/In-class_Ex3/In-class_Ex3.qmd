@@ -24,178 +24,128 @@ editor: source
 - do not save map as object class; will take very long
     - e.g. do not do map_name <- tmap_(...)
     - instead just call and render directly: tm_shape(...)    
+- also consider change to tmap_mode("view") instead of `plot`
 
-### Dependency Ratio Plot
+- exclude busstops in JB but retain causeway dataset 
 
--   First: check for statistical significance,
--   Then, plot/test for null hypothesis == normally distributed
+- stick with tmap instead of mixing with mapview
 
--   In geospatial, we don't test for `normality`, we test for `spatial randomness` : whatever is observed in space is randomly distributed
-    -   Similar to default assumption that distributions are Normal, default assumption
-    -   Worth checking; not all
+### Learnings from Hands-on Ex03:
 
--   `Dependency Ratio`: Number of non-working people / Number of working people
-    - High chance that dependency ratio is not randomly distributed;
-    - Socio-economic factors (eg private homes, "good" schools, workers)
-    - SES-locales can affect crime rates, electricity consumption, 
-    => Concept of `Spatial Inequality`: This world is not equal
-
-
-### Tobler's First Law of Geography: 
-
-Everything is related to everything else, but near things are more related than distant things
-
-
-### Spatial Weights
-
-- Spatial weights help to parse spatial dependency
-- Use of `adjacency` or `neighbours` as a frame to examine dependency
-    - Neighbourhood search: neighbours or not neighbours
-    
-- How do we qualify 'neighbourliness'?
-    - ADJACENCY - If vertex/edges touching, then neighbours
-    - DISTANCE  - If within certain distance, then neighbours
-        - binary, (1/0) neighbourhood stats
-    - INVERSE DISTANCE  - 1/distance
-        - gives higher weightage to nearer neighbours; Tobler's
-
-- In the real world, not everything is adjacency -- islands are not touching
-    - If using hex-based map, also 
-    - Tobler's first law: not touching but also has direct effects
-- Use of hexagon binning: MODIFIED AREA UNIT
-    - Planning Subzone has huge irregularities e.g. large areas (deployment area), oddly shaped long areas etc
-    - Hexagons are one of most compact tessellating shapes
-    - Modern city design work uses grids -- rare, not very usual (eg Punggol) 
-
-
-- QUEEN'S CONTIGUITY: "So long as they touch"; any point on edge is vertex
-
-- LAGGED CONTINUITY
-    - Lag 1: all adjacent neighbours
-    - Lag 2: adjacent neighbours' neighbours PLUS Lag 1;
-- All levels of lag include previous levels;
-    - Hence, see correllogram: influence gradually wanes over distance
-- EXAMPLE: Where to put Pizza Hut to minimise drive time, maximize food quality
-    - Look at real estate to identify largest expected market share, penetration
-    
-- If region is considered water or unnecessary, region can be dropped as rows
-    - Has to be excluded from consideration, otherwise will have geometric errors
-    - Will also mess with Moran's I calculations
+- Statistical method: cut away lowest 5% (cutoff < 5000 trips)
+- Reveals a more focused map:
+    - Westside, Jurong East/Clementi area: major transport nodes to adjacent mpsz subzone
+    - Eastside, nexus around Tampines area extending to many related subzones
+    - North-to-East: very long trips from N of island to E of island
     
     
-- Use of ROW-STANDARDISED WEIGHTS to avoid bias
-    - Since weights matrix is a matrix, diagonals are zero, symmetric about diagonal
-    - Also possible to calculate COLUMN-STANDARDISED METRICS with similar effect
+- Understand: What are the factors affecting this flow?
+    - Build explanatory models to understand factors that affect this flow 
 
-- GLOBAL Measure are for mathematical understanding;
-- LOCAL measures are more interesting
+### Concepts from Economic Geography / Retail Marketing: Trade Area Analysis
 
-- GDPPC in any regions will be unevenly spatially distributed
-    - Aside from capital, may have secondary city: second region of prosperity & development as growth centre
+- Conditions for Spatial Flow 
+    - Transferability: Willingness to travel for event (eg Concert)
+    - Intervening Opportunity: Alternative travel options (eg Orchard vs JB)
     
+- Travel costs: people willing to pay for transport (+lodgings) for 1-night concert
+
+### In-Class Exercise 03
+
+- Difficult if we consider bus-stop to bus-stop; too granular, single stop
+    - That's why it's aggregated at subzone level;
     
-### Spatial Dependency
-
-- When measuring rainfall, not every region has a rainfall station. How do we do this for all region?
-    - Use interpolation for uncovered regions + concept of Spatial Dependency
+- GENERAL FORMULATION:
+    - [ Vi ] Available at origin; push factor
+    - [ Wi ] Available at destination; pull factor
+    - [ Sij ] Distance decay; distance of willingness to travel
     
-### Spatial Autocorrelation
-- Typical correlation compares 2 different features;
-- Spatial Autocorrelation compares one feature, of self vs neighbour
-    - Similar formula to correlation coefficient
+- Vi, Wi can be one or multiple factors
+- Interaction model Tij is thus a function of f(Vi, Wi, Sij)
+
+- GRAVITY MODEL: Explain spatial interaction; i and j exert identical, opposite force on each other (as in gravity)
+- POTENTIAL MODEL: Willingness to move for specific services eg 
+- RETAIL MODEL: Delineate trade areas (fixed boundaries); eg people tend to shop within their regional boundaries instead of stepping out
+    - since IRL the strict lines don't exist, we use probability 
     
-- Spatial Autocorrelation tests (Moran's I, Geary's C) tries to reject the null hypothesis that "things are randomly distributed in space"
-    - Positive Spatial Autocorrelation: Pattern of clustering, e.g. high is found near to high 
-    - Negative Spatial Autocorrelation does not mean randomness! Instead, it follows some ordered pattern (e.g. checkerboard -- high surrounds low, low surrounds high); searching for outliers where different from surroundings
-    - Spatial Autocorrelation suggests non-random patterns 
-    
-- in Spatial Data, go directly to monte carlo simulation
+- General formula can be easily formulated into a form for linear regression
+    - Most of the time, relationship is nonlinear;
+    - eg some goods, people are willing to pay over Beta: distance decay (eg concert) 
+        - some goods are not worth travelling for (eg loaf of bread)
+        - Beta looks like inverse relation (1/x)
+    - Alpha & Lambda (propulsiveness/repulsiveness): similarly nonlinear, tend to be economic factors
+        - looks like exponential, x^n 
+- Use of generalised regression model in R
+
+"The moral of the story is, not every relationship is linear."
 
 
-### LISA
-- Helps to identify clusters (high-high, low-low) and outliers (high-low, low-high) ==> regions of positive/negative spatial autocorrelation
-    - hence quadrant 5, "none"
-- For all tests, we only highlight Spatial Autocorrelation AND high statistical significance
-
-- Why might region not be statistically significant?
-    - Not enough neighbours; test is uncertain
-    - Enough neighbours, but data just not stat-significant
-    
-    
-### Gi*
-- For Gi*, should always be distance-based;
-    - Moran's I, Geary's C can be contiguity or distance-based; but Getis-Ord should always be distance-based
-    - Evolved from work on dengue transmissions; hence distance is more valuable
-- Gi does not count itself, Gi* counts itself
 
 
-### Mann-Kendall 
-- Useful for time-series data;
-    - Hunan GDPPC is single-instance, but most effects happen over space and time; thus, it's useful to consider time 
-- A "sign" statistic:
-    - compares value at time j vs at time k;
-    - outputs either +1 if decreasing, -1 if increasing, or 0 if no change
-    - does not consider output, only test for monotonicity and "interprets the relationship"
-    - cannot have breaks in timeseries; eg if COVID, add datapoint of 0 to keep it going
-- Note: this is nonspatial, only statistical
-
-
-### Emerging Hotspot EHSA
-- Space & time analysis improvement over Mann-Kendall
-- Instead using Gi* instead of value
-    - Compares Gi* over time -- increasing or decreasing
-    
-- Need to transform data into SPACETIME CUBE
-    - x, y dimensions of attribute a
-    - z-dimension of time 
-    - `sfdep` allows construction of spacetime cube 
  
 ```
 :::
 
-# Spatial Weights
+# 16. Calibrating Spatial Interaction Models with R
+
+See Chapter 16: <https://r4gdsa.netlify.app/chap16>
+
+-   When configuring, you need three types of data:
+
+    -   `Flow data`: Prepared in Hands-on Ex03
+
+    -   (Today): Calculate Tij formula by calculating Sij
+
 ## Overview
 
-- See also [In-Class Exercise 2: GLSA](In-class_Ex2_GLSA.html) and [In-Class Exercise 2: EHSA](In-class_Ex2_EHSA.html)
+-   See also [In-Class Exercise 2: GLSA](In-class_Ex2_GLSA.html) and [In-Class Exercise 2: EHSA](In-class_Ex2_EHSA.html)
 
-## Getting Started - Import packages
+## 16.3 Getting Started - Import packages
 
-This function calls pacman to load sf, tidyverse, tmap, knitr packages;
+-   `sp` Spatial Polygon package; computationally more efficient for large dataset
 
--   `tmap` : For thematic mapping; powerful mapping package
--   `sf` : for geospatial data handling, but also geoprocessing: buffer, point-in-polygon count, etc
-    -   batch processing over GIS packages; can handle tibble format
--   `sfdep` : creates space-time cube, EHSA; replaces spdep
--   `tidyverse` : for non-spatial data handling; commonly used R package
--   `knitr` : generates html table
+    -   Replaced by `sf` since 2015
+
+-   `dt` for Dynamic tables
+
+-   `performance` to calculate metrics to measure performance of model eg R\^2, MSE
+
+-   `reshape2` handles matrices for distance matrix;
+
+    -   Replaced by `tidyverse`, which focuses on handling dataframes but doesn't handle distance matrices so well
+
+-   `ggpubr` for composing multiple plots into one
+
+-   `tidyverse` loads a universe of packages, don't need to separately import `ggplot`, `tidyr`, `dplyr`
 
 ```{r}
-pacman::p_load(tmap, sf, sfdep, tidyverse, knitr)
+pacman::p_load(tmap, sf, sp, DT,
+               performance, reshape2,
+               ggpubr, tidyverse)
 ```
 
-## Loading the data
+## 16.5 Computing Distnace matrix 
 
--   `Hunan`: geospatial dataset in ESRI shapefile format
-    -   use of `st_read()` to import as`sf` data.frame
-        -   `$geometry` column is actually a list inside the `df` cell; that's the power of the tibble dataframe
-        -   "features" of `simple features` refers to geometric features eg point line curve etc
-    -   note projection is `WGS84`; see \`88
--   `hunan2012`: attribute format in csv format
-    -   use of `read_csv()` as`tbl_df` data.frame
--   **!IMPORTANT!** to retain geometry, you must left join to the `sf` dataframe (eg you can also hunan2012 right join hunan)
-    -   without `sf` dataframe, normal tibble dataframe will drop the geometry column
+-   we use administrative boundaries of subzone for easier parsing, instead of bus stop centroid
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
-hunan <- st_read(dsn = "data/geospatial", 
-                 layer = "Hunan")
-hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
-hunan_GDPPC <- left_join(hunan,hunan2012)%>%
-  select(1:4, 7, 15)
+mpsz <- read_rds("data/rds/mpsz.rds")
+mpsz
 ```
 
+-   Note that distance matrix is symmetriccal about the diagonal;
+
+    -   Diagonal is always zero, as row_1 == col_1, row_2 == col_2, etc
+
+    -   We treat intra-subzone as zero
+
+    -   By default, function will infill as zero
+
 ### Plot a chloropleth of GDPPC
+
+template
 
 ```{r}
 #| code-fold: true
@@ -204,25 +154,14 @@ hunan_GDPPC <- left_join(hunan,hunan2012)%>%
 #  tm_layout(main.title = "GDPPC", main.title.position = "right")
 
 
-tm_shape(hunan_GDPPC) +
-  tm_fill(col = "GDPPC", 
-          style = "pretty",
-          palette = "Blues",
-          title = "GDPPC") +
-  tm_borders(alpha = 0.5) +
-  tm_layout(main.title = "GDPPC",
-            inner.margins = c(0.1, 0.1, 0.1, 0.1),
-            outer.margins = c(0.1, 0.1, 0.1, 0.1)
-            ) + 
-  tm_grid(alpha = ) 
 ```
 
-## Deriving QUEEN contiguity weights 
+## Deriving QUEEN contiguity weights
 
 -   `mutate` is function that creates new column from previous column datas
     -   `st_contiguity` creates `nb` neighbour matrix (QUEEN contiguity, by default)
-    -   `st_weights` creates row-standardised weights (`style="W"`) from `nb` object 
-    - One-step function using `sfdep`; a wrapper for `spdep` but writes output into `sf` dataframe 
+    -   `st_weights` creates row-standardised weights (`style="W"`) from `nb` object
+    -   One-step function using `sfdep`; a wrapper for `spdep` but writes output into `sf` dataframe
 
 ```{r}
 #| code-fold: true
@@ -233,5 +172,3 @@ wm_q <- hunan_GDPPC %>%
          wt = st_weights(nb, style = "W"),
          .before = 1)
 ```
-
-
