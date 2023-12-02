@@ -94,6 +94,7 @@ mpsz <- st_read(dsn = "data/geospatial",
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
+mpsz <- write_rds(mpsz, "data/rds/mpsz.rds")
 mpsz
 ```
 
