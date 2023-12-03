@@ -8,7 +8,7 @@ editor: source
 
 On this page, we define Exploratory Spatial Data Analysis (ESDA) to understand spatial and spatio-temporal mobility patterns of public bus passengers in Singapore.
 
-More detail about the task from: https://isss624-ay2023-24nov.netlify.app/take-home_ex01
+More detail about the task from: <https://isss624-ay2023-24nov.netlify.app/take-home_ex01>
 
 ::: callout-important
 ## Important Note
@@ -32,12 +32,12 @@ This study was performed in R, written in R Studio, and published using Quarto.
 
 This function calls `pacman` to load sf, tidyverse, tmap, knitr packages;
 
--   `tmap` : For thematic mapping; powerful mapping package
--   `sf` : for geospatial data handling, but also geoprocessing: buffer, point-in-polygon count, etc
-- `sfdep` : useful functions for creating weight matrix, LISA calculations etc
--   `tidyverse` : for non-spatial data handling; commonly used R package and contains `dplyr` for dataframe manipulation and `ggplot` for data visualization
--   `DT`: for displaying datatables
--   `leaflet`: for custom layer controls over `tmap` visualisations
+-   `tmap` : For thematic mapping; powerful mapping package;
+-   `sf` : for geospatial data handling, but also geoprocessing: buffer, point-in-polygon count, etc;
+-   `sfdep` : useful functions for creating weight matrix, LISA calculations etc;
+-   `tidyverse` : for non-spatial data handling; commonly used R package and contains `dplyr` for dataframe manipulation and `ggplot` for data visualization;
+-   `DT`: for displaying datatables;
+-   `leaflet`: for custom layer controls over `tmap` visualisations.
 
 
 ```{r}
@@ -49,8 +49,8 @@ pacman::p_load(tmap, sf, sfdep, tidyverse, DT, leaflet)
 
 ### 1.2.1 Load Geospatial Bus Stop Data
 
--   First, we load `BusStop` shapefile data from [LTA Datamall](https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html).
--   `st_read()` is used to import the ESRI Shapefile data into an `sf` dataframe
+-   First, we load `BusStop` shapefile data from [LTA Datamall](https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html);
+-   `st_read()` is used to import the ESRI Shapefile data into an `sf` dataframe.
 
 
 ```{r}
@@ -65,7 +65,7 @@ head(raw_bus_stop_sf)
 -   We check the coordinate reference system with `st_crs()`;
 
 ::: {.callout-warning collapse="true"}
-## EXPAND to see full st_crs readout
+## EXPAND To See: Full `st_crs`Readout
 
 
 ```{r}
@@ -78,11 +78,11 @@ st_crs(raw_bus_stop_sf)
 :::
 
 -   We see that although the projection is SVY21, the CRS (coordinate reference system) is EPSG 9001, which is incorrect;
--   We thus use `st_set_crs()` to set it to 3414, which is the [EPSG code for SVY21](https://epsg.io/3414)
-    -   we then use `st_crs()` to confirm it is the correct EPSG code
+-   We thus use `st_set_crs()` to set it to 3414, which is the [EPSG code for SVY21](https://epsg.io/3414);
+    -   we then use `st_crs()` to confirm it is the correct EPSG code.
 
 ::: {.callout-warning collapse="true"}
-## EXPAND to see st_crs readout after st_transform
+## EXPAND To See: `st_crs` Readout after `st_transform`
 
 
 ```{r}
@@ -97,8 +97,8 @@ st_crs(raw_bus_stop_sf)
 :::
 
 -   We now do a quick plot to quickly visualize the bus stops;
-    -   `qtm()` is a wrapper to do a quick, simple plot using `tmap` without defining arguments
-    -   we use `tmap_mode("plot")` to set the map as a static image, rather than as an interactive map, in order to save processing.
+    -   `qtm()` is a wrapper to do a quick, simple plot using `tmap` without defining arguments;
+    -   we use `tmap_mode("plot")` to set the map as a static image, rather than as an interactive map, in order to save processing time.
 
 
 ```{r}
@@ -115,8 +115,8 @@ qtm(raw_bus_stop_sf)
 
 -   This image is hard to read; we can vaguely discern Singapore's Southern coastline, but it can be hard to visualize.
 -   I have sourced and downloaded supplemental data about Singapore's Administrative National Boundary ("SANB") from [igismap.com](https://map.igismap.com/gis-data/singapore/administrative_national_boundary) as a base layer for visualization;
-    -   We set `tmap_mode("view")` to allow us to scroll and confirm the SARB boundaries
-    -   As before, we use `st_read()` to load the shapefile data, and `st_transform()` to ensure the projection is correct
+    -   We set `tmap_mode("view")` to allow us to scroll and confirm the SARB boundaries;
+    -   As before, we use `st_read()` to load the shapefile data, and `st_transform()` to ensure the projection is correct;
         -   We use `tm_shape() + tm_polygons()` to map a grey layer of the SARB boundaries;
         -   On top of which, we layer `tm_shape() + tm_dots()` to show the bus stops.
 
@@ -140,7 +140,7 @@ tm_shape(sanb_sf) +
 
 
 ::: callout-note
-## Does the map look skewed to the right?
+## Does The Map Look Skewed To The Right?
 
 That's because the Singapore National Administrative Boundaries map includes [Pedra Branca](https://en.wikipedia.org/wiki/Pedra_Branca,_Singapore), the much-disputed outlying island and easternmost point of Singapore.
 
@@ -149,8 +149,8 @@ It's an amusing artifact here, but will not be involved in further analysis late
 
 -   We note there are a number of bus stops outside Singapore's boundaries; Specifically, three bus stops in a cluster just outside the Causeway, and one further North.
 -   We perform several steps to isolate & check the data;
-    -   we use `st_filter()` to find bus stops within Singapore's Administrative National Boundaries, and create `sg_bus_stop_sf` for future use
-    -   to check what bus stops have been dropped, we use `anti_join()` to compare `raw_bus_stop_sf` with `sg_bus_stop_sf`. We use `st_drop_geometry` on both `sf` dataframes to
+    -   we use `st_filter()` to find bus stops within Singapore's Administrative National Boundaries, and create `sg_bus_stop_sf` for future use.
+    -   to check what bus stops have been dropped, we use `anti_join()` to compare `raw_bus_stop_sf` with `sg_bus_stop_sf`. We use `st_drop_geometry` on both `sf` dataframes to only compare the non-geometry columns.
 
 
 ```{r}
@@ -169,8 +169,8 @@ anti_join(st_drop_geometry(raw_bus_stop_sf), st_drop_geometry(sg_bus_stop_sf))
 ### 1.3.1 Removing Duplicate Bus Stops
 
 -   But, do we need to do more data cleaning?
--   We use `length()` to find the total number of raw values in the `$BUS_STOP_N` column of `sg_bus_stop_sf`
-    -   We then compare this to `length(unique())` to find the unique values
+-   We use `length()` to find the total number of raw values in the `$BUS_STOP_N` column of `sg_bus_stop_sf;`
+    -   We then compare this to `length(unique())` to find the unique values;
 -   And, indeed, we find there are 16 bus stops that are repeated;
 
 
@@ -183,8 +183,8 @@ cat("\nRepeated bus stops\t\t\t\t:   ", paste0(length(raw_bus_stop_sf$BUS_STOP_N
 
 
 -   It appears there are 16 datapoints that are specifically repeated; let's identify the bus stop numbers with repeated rows:
-    -   First we use `filter()` with a pipe mark (using `or` condition) to identify repeated bus stop numbers (i.e. `$BUS_STOP_N`)
-    -   We sort them in ascending order using `arrange()`; then, using `group_by()` and `row_number()` we add row numbers based on `$BUS_STOP_N` to a new column using `mutate()`
+    -   First we use `filter()` with a pipe mark (using `or` condition) to identify repeated bus stop numbers (i.e. `$BUS_STOP_N`);
+    -   We sort them in ascending order using `arrange()`; then, using `group_by()` and `row_number()` we add row numbers based on `$BUS_STOP_N` to a new column using `mutate()`.
 
 
 ```{r}
@@ -202,15 +202,15 @@ datatable(repeated_df)
 
 -   From examination, there are 32 bus stops sharing 16 bus stop numbers -- 16 pairs of bus stops sharing the same number.
 -   Let's examine these bus stop pairs on the map;
-    -   we use `mapview()` to display these repeated bus stops on the map
-    -   we use `col="BUS_STOP_N"` with `palette="Spectral` to give each pair of bus stops an individual colour
+    -   we use `mapview()` to display these repeated bus stops on the map;
+    -   we use `col="BUS_STOP_N"` with `palette="Spectral` to give each pair of bus stops an individual colour.
 
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
 
-tmap_mode("plot")
+tmap_mode("view")
 tm_shape(sanb_sf) +
   tm_polygons() + 
   tm_shape(repeated_df) + 
@@ -233,11 +233,23 @@ head(sg_bus_stop_sf)
 
 
 ::: {.callout-warning collapse="true"}
-## EXPAND to see: Alternative manual cleaning steps;
+## EXPAND to see: Alternative Manual Cleaning Steps
 
-I was unable to take Prof Kam's Data Analytics Lab, but I know of his fervour and attention to detail. I believe in informed choices, and so I performed manual cleaning with the following steps: - Remove the rows with lowercase names, as most `$LOC_DESC` are in strict uppercase - Remove the rows with `NA` `$LOC_DESC` - Remove the row with `NIL` `$LOC_DESC` - For remaining rows, drop second entry - Retain remaining rows - After this, we just run the same steps on `sg_bus_stop_sf` or perform an anti-join.
+I was unable to take Prof Kam's Data Analytics Lab, but I know of his fervour and attention to detail. I believe in informed choices, and so I performed manual cleaning with the following steps:
 
-However, after clarification with Prof Kam, we just drop the second entry. My code is shown below for extra gratification
+-   Remove the rows with lowercase names, as most `$LOC_DESC` are in strict uppercase
+
+-   Remove the rows with `NA` `$LOC_DESC`
+
+-   Remove the row with `NIL` `$LOC_DESC`
+
+-   For remaining rows, drop second entry
+
+-   Retain remaining rows
+
+After this, we just run the same steps on `sg_bus_stop_sf` or perform an anti-join.
+
+However, after clarification with Prof Kam, we just drop the second entry. My code is shown below for the gratification of those who may enjoy it.
 
 
 ```{r}
@@ -285,13 +297,13 @@ cat("\nRepeated bus stops\t\t\t\t:   ", paste0(length(sg_bus_stop_sf$BUS_STOP_N)
 
 ## 1.4 Generating Hexagon Maps
 
--   We use `st_make_grid()` with `square = FALSE` to create the `hexagon` layer as defined in the study, which we name `raw_hex_grid`
-    -   We pass `cellsize = 500` to create the hexagons of necessary size. Prof Kam defined the apothem as 250m, which means the distance between opposite edges is double that, or 500m
+-   We use `st_make_grid()` with `square = FALSE` to create the `hexagon` layer as defined in the study, which we name `raw_hex_grid`;
+    -   We pass `cellsize = 500` to create the hexagons of necessary size. Prof Kam defined the apothem as 250m, which means the distance between opposite edges is double that, or 500m;
         -   I used `units::as_units` to pass 500 metres into the argument. I am still uncertain whether a length of 500m needs to be reprojected, or whether we need to do any further transformation.
--   We use `st_sf()` to convert `raw_hex_grid` into an `sf` dataframe
-    -   `mutate()` is used here to create a `grid_id` column
+-   We use `st_sf()` to convert `raw_hex_grid` into an `sf` dataframe;
+    -   `mutate()` is used here to create a `grid_id` column;
     -   We just use `st_transform()` in case we need to reproject the coordinate system, just in case.
--   However, trying to visualize this right now just gives us a map full of hexagons.
+-   However, trying to visualize this right now just gives us a map full of hexagons:
 
 
 ```{r}
@@ -314,7 +326,7 @@ qtm(raw_hex_grid)
 
 
 -   What we will need is to isolate only the hexagons with bus stops in them.
-    -   We use `lengths(st_intersects())` to count the number of bus stops in each hexagon, and add that to a new column, `$n_bus_stops`
+    -   We use `lengths(st_intersects())` to count the number of bus stops in each hexagon, and add that to a new column, `$n_bus_stops` ;
     -   We then create `hexagon_sf` by filtering for only hexagons with non-zero bus stops in each.
 -   We then plot these using the usual `tmap()` functions;
     -   `tm_basemap()`is used to create a "basemap" layer underneath to orient our hexagons.
@@ -382,17 +394,17 @@ hexagon_sf[hexagon_sf$n_bus_stops > 10, ]
 
 ### 1.5.1 Import Bus O/D Dataset
 
--   For our purposes, we will focus only on 2023-October *Passenger Volume by Origin Destination Bus Stops*, downloaded from [LTA DataMall](https://datamall.lta.gov.sg/content/datamall/en.html)
+-   For our purposes, we will focus only on 2023-October *Passenger Volume by Origin Destination Bus Stops*, downloaded from [LTA DataMall](https://datamall.lta.gov.sg/content/datamall/en.html);
 
--   We use `read_csv()` to load the data from the .csv file
+-   We use `read_csv()` to load the data from the .csv file;
 
 -   We use `select()` with a `-` sign to remove two columns redundant for our analysis:
 
     -   `$PT_TYPE` column indicates the type of public transport, however, every value is "BUS"
     -   `$YEAR_MONTH` column similarly has "2023-10" for every value, which we are aware of
-    -   With this in mind, we drop these two columns to save space
+    -   With this in mind, we drop these two columns to save space.
 
--   Finally, we do `as.factor()` to convert two columns (`$ORIGIN_PT_CODE` and `$DESTINATION_PT_CODE`)from character to factor, for easier analysis
+-   Finally, we do `as.factor()` to convert two columns (`$ORIGIN_PT_CODE` and `$DESTINATION_PT_CODE`)from character to factor, for easier analysis.
 
 
 ```{r}
@@ -410,7 +422,7 @@ str(odbus_2310)
 
 -   This is a huge `tibble` dataframe with over 5 million rows.
 
-### 1.5.2 Filter for Peaks
+### 1.5.2 Filter For Peaks
 
 -   We now perform a multi-step filter process;
     1.  We combine `mutate()` with `case_when()` to create a new column, `$PEAK`, based on the study criteria:
@@ -420,7 +432,7 @@ str(odbus_2310)
         d.  "WEEKDAY_AFTERNOON_PEAK" if `$DAY_TYPE` is "WEEKENDS/HOLIDAY" and bus tap-on time (e.g. `$TIME_PER_HOUR`) is between 4 pm and 7pm, inclusive;
         e.  Remaining values are assigned "Unknown" value.
     2.  We then use `filter()` to eliminate those with "Unknown" `$PEAK` values, i.e. rows outside the period of interest for the study
-    3.  We use `group_by()` to group the values by `$ORIGIN_PT_CODE` and `$PEAK`, and use `summarise()` to aggregate the sum of `$TOTAL_TRIPS` as a new column, `$TRIPS`
+    3.  We use `group_by()` to group the values by `$ORIGIN_PT_CODE` and `$PEAK`, and use `summarise()` to aggregate the sum of `$TOTAL_TRIPS` as a new column, `$TRIPS`.
     4.  Finally, we use `pivot_wider()` to pivot our long table into wide format, where each column represents one of the peak periods of interest in our study, and the values are filled from `$TRIPS`. We use the `values_fill` argument to fill in a value of "0" if the bus stop has a missing value.
     5.  We use `write_rds()` to save the output dataframe, `odbus_filtered`, as an RDS object for future reference/load.
 
@@ -458,18 +470,18 @@ head(odbus_filtered)
 ```
 
 
-## 1.6 Combine bus trip data with hexagon_sf dataframe
+## 1.6 Combine Bus Trip Data With `hexagon_sf` Dataframe
 
 -   For our study purposes, we need to have the number of bus trips originating from each hexagon. In order to achieve this, we must combine our three current dataframes:
-    -   `hexagon_sf`, an `sf` dataframe with `$grid_id` column (primary key) and the specific polygon geometry of each hexagon
-    -   `sg_bus_stop_sf`, an `sf` dataframe with the `$BUS_STOP_N` (primary key) and the point geometry of each bus stop
+    -   `hexagon_sf`, an `sf` dataframe with `$grid_id` column (primary key) and the specific polygon geometry of each hexagon;
+    -   `sg_bus_stop_sf`, an `sf` dataframe with the `$BUS_STOP_N` (primary key) and the point geometry of each bus stop;
     -   `odbus_filtered`, a `tibble` dataframe with the `$ORIGIN_PT_CODE` (primary key) column and the trip details for each of the four peak periods of interest.
 
-### 1.6.1 Identify Hexagon grid_id for each bus stop
+### 1.6.1 Identify Hexagon `grid_id` For Each Bus Stop
 
--   First, we combine `hexagon_sf` with `sg_bus_stop_sf`
+-   First, we combine `hexagon_sf` with `sg_bus_stop_sf` ;
     -   We use `st_intersection` to combine the dataframes such that each row of `sg_bus_stop_sf` has an associated `grid_id`;
-    -   We use `select()` to filter the resultant `bus_stop_hexgrid_id` dataframe to only `$grid_id` and `$BUS_STOP_N` columns, and use `st_drop_geometry()` to convert into a simple dataframe with just two columns;
+    -   We use `select()` to filter the resultant `bus_stop_hexgrid_id` dataframe to only `$grid_id` and `$BUS_STOP_N` columns, and use `st_drop_geometry()` to convert into a simple dataframe with just two columns:
 
 
 ```{r}
@@ -487,7 +499,7 @@ head(bus_stop_hexgrid_id)
 ```
 
 
-### 1.6.2 Identify bus trip details for each hexagon grid_id
+### 1.6.2 Identify Bus Trip Details For Each Hexagon `grid_id`
 
 -   Here, we again use multiple steps to generate bus trip details for each hexagon `grid_id`;
     1.  We use `left_join()` to add the `grid_id` to each row of `odbus_filtered`, since each row has a unique single bus stop ID (i.e. `$BUS_STOP_N`);
@@ -520,11 +532,11 @@ head(grid_trips_df)
 ```
 
 
-### 1.6.3 Combine bus trip details back into hexagon_sf
+### 1.6.3 Combine Bus Trip Details Back Into `hexagon_sf`
 
 -   Finally, it's time to recombine bus trip data back into `hexagon_sf`;
-    -   We use `left_join` on `$grid_id` to add trip data back into hexagon_sf
-    -   We add a failsafe `mutate()` to replace any "NA" values for
+    -   We use `left_join` on `$grid_id` to add trip data back into hexagon_sf;
+    -   We add a failsafe `mutate()` to replace any "NA" values for the columns.
 
 
 ```{r}
@@ -545,10 +557,10 @@ head(hexagon_sf)
 ```
 
 
-### 1.6.4 Exploratory Data Analysis of bus trips across peaks by hexagons
+## 1.7 Exploratory Data Analysis Of Bus Trips, Across Peak Periods, By Hexagons
 
 -   For `ggplot`, we need data in long format, so we can use `gather()` on `grid_trips_df` from Section 1.6.2 to pivot this;
--   We then pipe this into a `geom_boxplot()` for an exploratory look...
+-   We then pipe this into a `geom_boxplot()` for an exploratory look:
 
 
 ```{r}
@@ -604,9 +616,9 @@ hexagon_sf %>%
 I note that these visualizations only scrape the surface of understanding the data. However, this is not the focus of our study; we do these quick visualizations only to provide better context for our study.
 :::
 
-## 2 Geovisualisation and Geocommunication
+# 2 Geovisualisation And Geocommunication
 
-### 2.1 Passenger Trips by Origin at Hexagon Level
+## 2.1 Passenger Trips By Origin At Hexagon Level
 
 ::: callout-important
 ## **Q:** With reference to the time intervals provided in the table below, compute the passenger trips generated by origin at the hexagon level.
@@ -623,17 +635,28 @@ datatable(hexagon_sf)
 ```
 
 
-### 2.2 Visualising the Geographical Distribution of Passenger Trips by Origin at Hexagon Level
+## 2.2 Visualising The Geographical Distribution Of Passenger Trips By Origin At Hexagon Level
 
 ::: callout-important
 ## **Q:** Display the geographical distribution of the passenger trips by using appropriate geovisualisation methods.
 :::
 
--   The below code block is a little more complicated, but can be thought of as combining a `tm` object with custom `tm_leaflet()` settings:
+The below code block is a little more complicated, but can be thought of as combining a `tm` object with custom `tm_leaflet()` settings:
 
-**Creating the `tm` object:** - We start with `tmap_mode("view")` to create an interactive base layer of Singapore - To create the "WEEKDAY_MORNING_TRIPS" layer, we perform the following: - We use `tm_shape()` and `tm_borders()` to visualize the hexagons in `hexagon_sf` - We use `tm_fill` and pass the argument `col = "WEEKDAY_MORNING_TRIPS"` to colour each hexagon based on the number of trips in the `$WEEKDAY_MORNING_TRIPS` column; - Since we are largely comparing the patterns, we use `style = "jenks"` to make use of the [Jenks natural breaks classification method](https://en.wikipedia.org/wiki/Jenks_natural_breaks_optimization) to group the number of trips in different hexagons. This results in more visually distinct clusters that allow us to better spot patterns and distribution. - This also means that each layer will be on a different scale; we therefore use different `palettes` so the user understand the scale breaks on each layer is different. For consistency, we also match each layer with the colourscheme in the visualisations in section 1.6.4 - For each feature, we add the `group="WEEKDAY_MORNING_TRIPS"` argument for leaflet control later - We repeat this for the other three layers as well.
+**Creating the `tm` object:**
 
-**Creating the `tm_leaflet` controls:** - We use `addLayersControl()` to specify the checkbox-menu of `overlayGroups`, according to the four defined peaks. Additional arguments allow us to ensure the menu is positioned at the top-left and expanded, for visibility and ease of use -
+-   We start with `tmap_mode("view")` to create an interactive base layer of Singapore;
+-   To create the "WEEKDAY_MORNING_TRIPS" layer, we perform the following:
+    -   We use `tm_shape()` and `tm_borders()` to visualize the hexagons in `hexagon_sf` ;
+    -   We use `tm_fill` and pass the argument `col = "WEEKDAY_MORNING_TRIPS"` to colour each hexagon based on the number of trips in the `$WEEKDAY_MORNING_TRIPS` column;
+    -   Since we are largely comparing the patterns, we use `style = "jenks"` to make use of the [Jenks natural breaks classification method](https://en.wikipedia.org/wiki/Jenks_natural_breaks_optimization) to group the number of trips in different hexagons. This results in more visually distinct clusters that allow us to better spot patterns and distribution.
+    -   This also means that each layer will be on a different scale; we therefore use different `palettes` so the user understand the scale breaks on each layer is different. For consistency, we also match each layer with the colourscheme in the visualisations in section 1.6.4.
+    -   For each feature, we add the `group="WEEKDAY_MORNING_TRIPS"` argument for leaflet control later.
+-   We repeat this for the other three layers as well.
+
+**Creating the `tm_leaflet` controls:**
+
+-   We use `addLayersControl()` to specify the checkbox-menu of `overlayGroups`, according to the four defined peaks. Additional arguments allow us to ensure the menu is positioned at the top-left and expanded, for visibility and ease of use.
 
 
 ```{r}
@@ -682,7 +705,7 @@ tm %>%
 ```
 
 
-### 2.3 Observed Spatial Patterns
+## 2.3 Observed Spatial Patterns
 
 ::: callout-important
 ## **Q:** Describe the spatial patterns revealed by the geovisualisation
@@ -692,12 +715,12 @@ There are three major patterns observable from the geospatial visualization. Fir
 
 Secondly, we observe that these regions of high bus trips seem to roughly correspond to regions of residential new towns and MRT lines (see image below). This makes sense, as commuters are likely to leave their homes in the mornings or take buses from MRT stations. We also see a darker region in the WEEKDAY_AFTERNOON_TRIPS map corresponding to the Central Business District, as commuters leave their workplace back to home.
 
-[![Image: Planning map of residential new towns and MRT lines in Singapore. Sourced from: "*The developmental state in the global hegemony of neoliberalism: A new strategy for public housing in Singapore*", sourced from [**Cities: The International Journal of Urban Planning and Policy,** Vol 29 Issue 6, Dec 2012](https://www.researchgate.net/publication/257097062_The_developmental_state_in_the_global_hegemony_of_neoliberalism_A_new_strategy_for_public_housing_in_Singapore)](Planning-of-new-towns-in-Singapore.png){fig-alt="Image showing planning of new towns in Singapore"}](https://www.researchgate.net/figure/Planning-of-new-towns-in-Singapore_fig1_257097062)
+[![Image: Planning map of residential new towns and MRT lines in Singapore. Sourced from: "The developmental state in the global hegemony of neoliberalism: A new strategy for public housing in Singapore", sourced from \[Cities: The International Journal of Urban Planning and Policy, Vol 29 Issue 6, Dec 2012\](https://www.researchgate.net/publication/257097062_The_developmental_state_in_the_global_hegemony_of_neoliberalism_A_new_strategy_for_public_housing_in_Singapore)](Planning-of-new-towns-in-Singapore.png){fig-alt="Image showing planning of new towns in Singapore"}](https://www.researchgate.net/figure/Planning-of-new-towns-in-Singapore_fig1_257097062)
 
 Finally, however, we observe that there is incomplete information. There are more trips on Weekday Afternoons compared to Weekday Mornings, and more trips on Weekdays than Weekends. This is likely due to other forms of transport (e.g. private cars, MRTs, bicycles).
 
 ::: {.callout-caution collapse="true"}
-## EXPAND to see: What if we plot the map on the same scale?
+## EXPAND To See: What If We Plot The Maps On The Same Scale?
 
 -   We can also visualize the map of all four on the same scale, for side-by-side comparison;
 -   However, as has been noted, the difference in scales between Weekday (left column) and Weekend (right column) trips means that there's not much visual information value; the Weekend plot looks mostly flat.
@@ -754,11 +777,12 @@ tmap_arrange(wd_morn, we_morn, wd_aft,  we_eve)
 
 # 3. Geospatial Analysis: Local Indicators of Spatial Association (LISA) Analysis
 
-## 3.1 Visualizing Queen Contiguity (and why it won't work)
-- To perform LISA analysis, we will need an `nb` matrix. 
-- However, using QUEEN contiguity will not work, as there are a number of hexagons without neighbours (i.e. no adjacent/touching hexagons)
-- This is visible if we call `st_contiguity()` on our `hexagon_sf` with the argument "queen=TRUE" for QUEEN contiguity:
-    - We see "9 regions with no links", i.e. 9 hexagons will have no neighbours.
+## 3.1 Visualizing Queen Contiguity (And Why It Won't Work)
+
+-   To perform LISA analysis, we will need an `nb` matrix.
+-   However, using QUEEN contiguity will not work, as there are a number of hexagons without neighbours (i.e. no adjacent/touching hexagons);
+-   This is visible if we call `st_contiguity()` on our `hexagon_sf` with the argument "queen=TRUE" for QUEEN contiguity;
+    -   We see "9 regions with no links", i.e. 9 hexagons will have no neighbours.
 
 
 ```{r}
@@ -769,31 +793,37 @@ summary(wm_hex)
 
 ```
 
-- We can perform a quick visualization of the hexagons with no neighbours;
-- We plot all hexagons, in green, from `hexagon_sf`, as an underlying layer
-- On top of this layer, we plot all hexagons with no neighbours, `hexagon_sf_nonb` in red;
-    - Using the output from above, we create a list of hexagons with no neighbours, `hex_no_nb`
-    - We create `hexagon_sf_nonb` by adding a `$RowNumber` column using `mutate()` and using `row_number()` to label each row 
-    - Finally, we use `subset()` to select only the hexagons with no neighbours.
+
+-   We can perform a quick visualization of the hexagons with no neighbours;
+
+-   We plot all hexagons, in green, from `hexagon_sf`, as an underlying layer;
+
+-   On top of this layer, we plot all hexagons with no neighbours, `hexagon_sf_nonb` in red;
+
+    -   Using the output from above, we create a list of hexagons with no neighbours, `hex_no_nb` ;
+    -   We create `hexagon_sf_nonb` by adding a `$RowNumber` column using `mutate()` and using `row_number()` to label each row;
+    -   Finally, we use `subset()` to select only the hexagons with no neighbours.
+
 
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
-hex_no_nb <- c(561, 726, 980, 1047, 1415, 1505, 1508, 1512, 1520)
+    ```{r}
+    #| code-fold: true
+    #| code-summary: "show code"
+    hex_no_nb <- c(561, 726, 980, 1047, 1415, 1505, 1508, 1512, 1520)
 
 
-hexagon_sf_nonb <- hexagon_sf %>%
-  mutate(RowNumber = row_number()) %>%
-  subset((RowNumber  %in% hex_no_nb))
+    hexagon_sf_nonb <- hexagon_sf %>%
+      mutate(RowNumber = row_number()) %>%
+      subset((RowNumber  %in% hex_no_nb))
 
-tm_shape(hexagon_sf) + 
-  tm_fill("green") + 
-  tm_borders() +
-  tm_shape(hexagon_sf_nonb) + 
-  tm_fill("red")
-```
+    tm_shape(hexagon_sf) + 
+      tm_fill("green") + 
+      tm_borders() +
+      tm_shape(hexagon_sf_nonb) + 
+      tm_fill("red")
+    ```
 
-- We note that the Easternmost red outlier hexagon is likely the bus stop outside Changi Naval Base:
+
+-   We note that the Easternmost red outlier hexagon is likely the bus stop outside Changi Naval Base:
 
 
 ```{r}
@@ -810,14 +840,14 @@ easternmost_point # 96439
 ```
 
 
-## 3.2 Creating Distance-based `nb` Neighbours Matrix
+## 3.2 Creating Distance-Based `nb` Neighbours Matrix
 
-### 3.2.1 Identifying coordinates of centroid
+### 3.2.1 Identifying Coordinates Of centroid
 
-- Creating Distance-based neighbour weights matrix relies on point geometry; 
-- That means, we need to calculate the centroids of each hexagon, by creating `centroid_coords`:
-    - This combines two lists, `longitude` and `latitude`, which we extract using `st_centroid` and indexing either the first or second value using `[[]]`
-    - `map_dbl()` ensures we obtain `longitude` and `latitude` as double integers
+-   Creating Distance-based neighbour weights matrix relies on point geometry;
+-   That means, we need to calculate the centroids of each hexagon, by creating `centroid_coords`:
+    -   This combines two lists, `longitude` and `latitude`, which we extract using `st_centroid` and indexing either the first or second value using `[[]]`
+    -   `map_dbl()` ensures we obtain `longitude` and `latitude` as double integers
 
 
 ```{r}
@@ -831,12 +861,13 @@ cat("Printing first 6 rows of `centroid_coords`:\n")
 head(centroid_coords)
 ```
 
-### 3.2.2 Identifying the minimum distance so each hexagon has at least 1 neighbour;
 
-- We use `st_knn()` with argument "k=1" to create a neighbour list, `k1_nn_obj`, such that each hexagon centroid has 1 neighbour (using the [k-nearest-neighbour algorithm](https://sfdep.josiahparry.com/reference/st_knn))
-- We use `st_nb_dists()` to create a list of distances between each hexagon centroid and its nearest neighbours
-- We performing `unlist()` on the object to convert it into a vector of numeric values, so that we can run `summary()` to see summary statistics on it.
-  
+### 3.2.2 Identifying The Minimum DIstance So Each Hexagon Has At Least One Neighbour
+
+-   We use `st_knn()` with argument "k=1" to create a neighbour list, `k1_nn_obj`, such that each hexagon centroid has 1 neighbour (using the [k-nearest-neighbour algorithm](https://sfdep.josiahparry.com/reference/st_knn));
+-   We use `st_nb_dists()` to create a list of distances between each hexagon centroid and its nearest neighbours;
+-   We performing `unlist()` on the object to convert it into a vector of numeric values, so that we can run `summary()` to see summary statistics on it.
+
 
 ```{r}
 #| code-fold: true
@@ -847,19 +878,24 @@ k1dists <- unlist(st_nb_dists(centroid_coords, k1_nn_obj))
 summary(k1dists)
 ```
 
-- We see that the furthest distance between a hexagon and its nearest neighbour is about 2.3km away; that will be the upper limit value needed to create distance-based contiguity.
+
+-   We see that the furthest distance between a hexagon and its nearest neighbour is about 2.3km away; that will be the upper limit value needed to create distance-based contiguity.
 
 ::: callout-tip
 Personally, I would drop the outlier (the hexagon with the Changi Naval Base bus stop). My reasoning is thus:
-- Logically speaking, we are enmeshing regions up to more than four hexagons away; 
-- As a commuter, walking 2.3km to the next nearest bus-stop hexagon is impractical and a clear outlier situation.
-- In personal testing, removing Changi Naval Base drops the maximum nearest-neighbour distance to 1km, which is more reasonable for both analysis and real-life considerations, but I note this here for future work and as commentary.
+
+-   Logically speaking, we are enmeshing regions up to more than four hexagons away; this may lea to greater-than-average lag than is necessary.
+
+-   As a commuter, walking 2.3km to the next nearest bus-stop hexagon is impractical and a clear outlier situation.
+
+-   In personal testing, removing Changi Naval Base drops the maximum nearest-neighbour distance to 1km, which is more reasonable for both analysis and real-life considerations, but I note this here for future work and as commentary.
 :::
 
-### 3.2.3 Creating a distance-based weights matrix
+## 3.3 Creating A Distance-Based Weights Natrix
 
-- To create a neighbours list, we use `st_dist_band()` on the `centroid_coords` of our hexagons, and pass "upper = 2300" to set the upper limit for the neighbour threshold (rounding up to 2.3km from our previous result)
-- We then use `st_weights()` to create the weights matrix; by default, the function creates row-standardised weights, but we could also have specified "style = "W"" for completeness.
+-   To create a neighbours list, we use `st_dist_band()` on the `centroid_coords` of our hexagons, and pass "upper = 2300" to set the upper limit for the neighbour threshold (rounding up to 2.3km from our previous result);
+-   We then use `st_weights()` to create the weights matrix; by default, the function creates row-standardised weights, but we could also have specified "style ="W"" for completeness.
+
 
 ```{r}
 #| code-fold: true
@@ -871,12 +907,14 @@ head(hex_2km_wt, 5)
   
 ```
 
-## 3.4 Calculate Local Moran's I 
-- For each peak period, we perform a calculation using `local_moran()`, feeding in the `nb` neighbours list and `wt` weight matrix from the previous section;
-    - We use `select()` to isolate the columns that we need, specifically the Local Moran's I statistics `$ii`, the p-value `$p_ii`, and the LISA  `$mean`(using mean over median or pysal)
-    - For ease of use later, we rename these columns with `rename()`
-    - We repeat for each of the four peak periods
-- Finally, we use a `cbind()` to append the columns back to our `hexagon_sf`
+
+## 3.4 Calculate Local Moran's I
+
+-   For each peak period, we perform a calculation using `local_moran()`, feeding in the `nb` neighbours list and `wt` weight matrix from the previous section;
+    -   We use `select()` to isolate the columns that we need, specifically the Local Moran's I statistics `$ii`, the p-value `$p_ii`, and the LISA `$mean`(here, we use mean over median or pysal columns);
+    -   For ease of use later, we rename these columns with `rename()` ;
+    -   We repeat for each of the four peak periods.
+-   Finally, we use a `cbind()` to append the columns back to our `hexagon_sf` :
 
 
 ```{r}
@@ -922,14 +960,13 @@ datatable(hexagon_sf_local_moran)
 ```
 
 
+## 3.5 Removing Statistically Non-Significant Values Before Plotting the LISA Map
 
-## 3.5 Removing Statistically Non-Significant Values Before Plotting the LISA Map 
-
-- To plot the LISA map, we will use the peak-specific `$mean` column; this uses the mean of values to classify regions into either outliers (High-Low or Low-High) or clusters (High-High or Low-Low).
-- However, we also only want to see categories if they are statistically significant, i.e. if the `$p_ii` value is >= 0.05, we should coerce the LISA category to "Insignificant", so we need to do some cleaning;
-- Once again, we use our trusty friend `mutate()` to modify existing columns;
-    - We pass the column `$DAY_MORN_mean` and define a `case_when()` statement that replaces the value with "Insignificant" if the `$DAY_MORN_p` value is greater than 0.05 (i.e. p-value is higher than 0.05)
-    - We repeat this for the other peak periods 
+-   To plot the LISA map, we will use the peak-specific `$mean` column; this uses the mean of values to classify regions into either outliers (High-Low or Low-High) or clusters (High-High or Low-Low).
+-   However, we also only want to see categories if they are statistically significant, i.e. if the `$p_ii` value is \>= 0.05, we should coerce the LISA category to "Insignificant", so we need to do some cleaning;
+-   Once again, we use our trusty friend `mutate()` to modify existing columns;
+    -   We pass the column `$DAY_MORN_mean` and define a `case_when()` statement that replaces the value with "Insignificant" if the `$DAY_MORN_p` value is greater than 0.05 (i.e. p-value is higher than 0.05);
+    -   We repeat this for the other peak periods:
 
 
 ```{r}
@@ -959,13 +996,15 @@ df <- hexagon_sf_local_moran %>%
 datatable(head(df))
 ```
 
-## 3.6 Plotting the LISA Map 
-- Now, we perform a similar plot to the visualisation above in Section 2.2;
-    - We use `tmap_leaflet()` and `addLayersControl()` to allow for toggling between the various peak periods
-    - We pass `group=` argument for each `tmap` function to group them into layer groups
-    - We use `tm_shape()` to plot the hexagons, `tm_borders()` to draw the borders and `tm_fill()` to colour them in
-- The difference here is we define a custom palette, `colors`, sourced from Prof Kam's book.
-- 
+
+## 3.6 Plotting The LISA Map
+
+-   Now, we perform a similar plot to the visualisation above in Section 2.2;
+    -   We use `tmap_leaflet()` and `addLayersControl()` to allow for toggling between the various peak periods;
+    -   We pass `group=` argument for each `tmap` function to group them into layer groups;
+    -   We use `tm_shape()` to plot the hexagons, `tm_borders()` to draw the borders and `tm_fill()` to colour them in.
+-   The difference here is we define a custom palette, `colors`, sourced from Prof Kam's book.
+
 
 ```{r}
 #| code-fold: true
@@ -1019,22 +1058,20 @@ tm2 %>%
 ## **Q:** With reference to the analysis results, draw statistical conclusions (not more than 200 words per visual).
 :::
 
-- The Westmost region (Tuas, Boon Lay) areas are hugely underserved by buses, across all peak periods.
-- Travel patterns on Weekends are more homogeneous (regions are similar across Weekend Morning and Weekend Evening peaks); however, there is a stark difference between Weekday Morning and Weekday Afternoon peaks. This likely reflects people leaving homes to commute / people leaving places of work, study, or commerce to return home.
-- Across all peak periods, there are consistent areas of high demand; these include:
-    - A region in the West, stretching across Jurong West-Jurong East-Bukit Batok-Choa Chu Kang neighbourhoods;
-    - A cluster in the North, around the Woodlands region;
-    - A cluster in the East, around the Bedok-Tampines region;
-    
-- There are also regions of peak-specific demand;
-    - In the Northeast, there is a region of High-High peak around the Sengkang-Punggol region during weekday and weeknd mornings, that are not there during weekday evenings/weekend afternoons. This may represent residents leaving homes to commute to school, work, or recreation, but returning outside peak hours or not using buses.
-    - There is Central region around the Chinatown-CBD-Bugis-Rochor stretch that shows High-High and Low-High peaks of traffic demand on all peaks aside from Weekday Mornings; it is likely that these are not residential areas, but places of commerce, shopping, or work.
-    
-- To reiterate previous conclusions, most hexagons do not show significant trends and may be disregarded in favour of analysis of major hotspots; and there is incomplete information in our dataset. 
+-   The Westmost region (Tuas, Boon Lay) areas are hugely underserved by buses, across all peak periods.
+-   Travel patterns on Weekends are more homogeneous (regions are similar across Weekend Morning and Weekend Evening peaks); however, there is a stark difference between Weekday Morning and Weekday Afternoon peaks. This likely reflects people leaving homes to commute / people leaving places of work, study, or commerce to return home.
+-   Across all peak periods, there are consistent areas of high demand; these include:
+    -   A region in the West, stretching across Jurong West-Jurong East-Bukit Batok-Choa Chu Kang neighbourhoods;
+    -   A cluster in the North, around the Woodlands region;
+    -   A cluster in the East, around the Bedok-Tampines region;
+-   There are also regions of peak-specific demand;
+    -   In the Northeast, there is a region of High-High peak around the Sengkang-Punggol region during weekday and weeknd mornings, that are not there during weekday evenings/weekend afternoons. This may represent residents leaving homes to commute to school, work, or recreation, but returning outside peak hours or not using buses.
+    -   There is Central region around the Chinatown-CBD-Bugis-Rochor stretch that shows High-High and Low-High peaks of traffic demand on all peaks aside from Weekday Mornings; it is likely that these are not residential areas, but places of commerce, shopping, or work.
+-   To reiterate previous conclusions, most hexagons do not show significant trends and may be disregarded in favour of analysis of major hotspots; and there is incomplete information in our dataset.
 
-## 3.6.1 Plotting the LISA Maps Side-by-Side
+### 3.6.1 Plotting The LISA Maps Side-By-Side
 
-- For better illustration of the regions and conclusions, we can plot the maps altogether, using similar methods as before.
+-   For better illustration of the regions and conclusions, we can plot the maps altogether, using similar methods as before.
 
 
 ```{r}
@@ -1075,8 +1112,8 @@ tmap_arrange(wd_morn_lisa, we_morn_lisa, wd_aft_lisa,  we_eve_lisa)
 
 ## 3.7 Plotting the Local Moran's I statistics
 
-- For completeness, we have also plotted the map of Local Moran's I statistic for brief discussion;
-- We simply wish to observe that there appear to be persistent hotspot hexagons with outlier values (i.e. very positive or very negative) that persist across all peaks.
+-   For completeness, we have also plotted the map of Local Moran's I statistic for brief discussion;
+-   We simply wish to observe that there appear to be persistent hotspot hexagons with outlier values (i.e. very positive or very negative) that persist across all peaks.
 
 
 ```{r}
@@ -1123,17 +1160,13 @@ tmap_arrange(wd_morn_lmi, we_morn_lmi, wd_aft_lmi,  we_eve_lmi)
 ```
 
 
+# 4 Summary Of Observations & Future Work
 
-## 4 Summary of Observations & Future Work
-
-- From the geospatial visualisations, we have identified regions of high traffic based on bus stop origin trip data.
-    - Considering only passenger trips (Section 2), there are certain regions where many trips originate. These are likely areas of transit from other transporation types, e.g. MRT Stations or taxi stands.
-    - Considering LISA (Section 3), there appear to be different traffic demands at different peak times. In particular, we saw a difference in traffic demand regions during Weekday Morning and Weekday Afternoon peaks.
-    
-- For further work, we can consider the following:
-    - **Integrating data from other sources of public transport** including MRT data. This will provide a more holistic picture.
-    - **Incorporate Emerging Hotspot Analysis** across the months and across the hours of the day, in order to get a clearer picture of travel patterns
-    - **Mapping regions of residence/commerce/study** in order to provide context for major areas of high traffic.
-
-
+-   From the geospatial visualisations, we have identified regions of high traffic based on bus stop origin trip data.
+    -   Considering only passenger trips (Section 2), there are certain regions where many trips originate. These are likely areas of transit from other transporation types, e.g. MRT Stations or taxi stands.
+    -   Considering LISA (Section 3), there appear to be different traffic demands at different peak times. In particular, we saw a difference in traffic demand regions during Weekday Morning and Weekday Afternoon peaks.
+-   For further work, we can consider the following:
+    -   **Integrating data from other sources of public transport** including MRT data. This will provide a more holistic picture.
+    -   **Incorporate Emerging Hotspot Analysis** across the months and across the hours of the day, in order to get a clearer picture of travel patterns
+    -   **Mapping regions of residence/commerce/study** in order to provide context for major areas of high traffic.
 
