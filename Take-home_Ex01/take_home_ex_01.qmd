@@ -21,7 +21,7 @@ For easier reading, this study is also presented in point-form.
 
 Public transport is a key concern for residents in land-scarce, population-dense Singapore. With [COEs](https://onemotoring.lta.gov.sg/content/onemotoring/home/buying/upfront-vehicle-costs/certificate-of-entitlement--coe-.html) reaching record highs and [authorities announcing the termination of bus services](https://www.todayonline.com/singapore/bus-service-167-30-minute-breaks-commuters-lta-2314221), there is no better time to understand the public transport network and systems in Singapore.
 
-By understanding and modelling patterns of public transport consumption - including specifically Local Indicators of Spatial Autocorrelation (LISA), insights can be provided to both public and private sector to formulate more informed decisions that for the benefit of the public, and not just for profit.
+By understanding and modelling patterns of public transport consumption - including specifically Local Indicators of Spatial Association (LISA), insights can be provided to both public and private sector to formulate more informed decisions that for the benefit of the public, and not just for profit.
 
 # 1. Geospatial Data Wrangling
 
