@@ -8,32 +8,28 @@ In this website, I am going to share with you my learning journey of Geospatial 
 
 Because Rstudio regularly crashes with Quarto when I try to commit, here is a link menu to my exercises:
 
-::: {.callout-note}
+::: callout-note
 ## Hands-on Exercises:
 
-- [Hands-on Exercise 1](Hands-on_Ex01/Hands-on_Ex01.html)
-- [Hands-on Exercise 2 parts 1 & 2](Hands-on_Ex02/Hands-on_Ex02.html) - Spatial Weights & Global Measures of Spatial Autocorrelation
-    - [Hands-on Exercise 2 parts 3](Hands-on_Ex02/Hands-on_Ex02_Local.html) - Local Measures of Spatial Autocorrelation -- broken up because Rstudio kept crashing
-- [Hands-on Exercise 3](Hands-on_Ex03/Hands-on_Ex03.html)
-
+-   [Hands-on Exercise 1](Hands-on_Ex01/Hands-on_Ex01.html)
+-   [Hands-on Exercise 2 parts 1 & 2](Hands-on_Ex02/Hands-on_Ex02.html) - Spatial Weights & Global Measures of Spatial Autocorrelation
+    -   [Hands-on Exercise 2 parts 3](Hands-on_Ex02/Hands-on_Ex02_Local.html) - Local Measures of Spatial Autocorrelation -- broken up because Rstudio kept crashing
+-   [Hands-on Exercise 3](Hands-on_Ex03/Hands-on_Ex03.html)
+-   [Hands-on Exercise 4](Hands-on_Ex04/Hands-on_Ex04.html)
 :::
 
-
-::: {.callout-important}
+::: callout-important
 ## Take-Home Exercises
 
-- [Take-home Exercise 1](Take-home_Ex01/take_home_ex_01.html)
+-   [Take-home Exercise 1](Take-home_Ex01/take_home_ex_01.html)
 :::
 
-::: {.callout-tip}
+::: callout-tip
 ## In-class Exercises:
 
-- Warning, these are incomplete, Prof Kam rushes through too quickly 
-- [In-class Exercise 1](In-class_Ex/In-class_Ex1/In-class_Ex1.html)
-- [In-class Exercise 2 Spatial Weights](In-class_Ex/In-class_Ex1/In-class_Ex2_Spatial.html)
-- [In-class Exercise 2 GLSA](In-class_Ex/In-class_Ex1/In-class_Ex2_GLSA.html)
-- [In-class Exercise 2 EHSA](In-class_Ex/In-class_Ex1/In-class_Ex2_EHSA.html)
+-   Warning, these are incomplete, Prof Kam rushes through too quickly
+-   [In-class Exercise 1](In-class_Ex/In-class_Ex1/In-class_Ex1.html)
+-   [In-class Exercise 2 Spatial Weights](In-class_Ex/In-class_Ex1/In-class_Ex2_Spatial.html)
+-   [In-class Exercise 2 GLSA](In-class_Ex/In-class_Ex1/In-class_Ex2_GLSA.html)
+-   [In-class Exercise 2 EHSA](In-class_Ex/In-class_Ex1/In-class_Ex2_EHSA.html)
 :::
-
-          
-        
