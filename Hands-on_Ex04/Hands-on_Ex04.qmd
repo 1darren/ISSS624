@@ -7,9 +7,6 @@ On this page, I address Hands-On Exercise for Lesson 04: Geographically Weighted
 
 # 1. **Calibrating Hedonic Pricing Model for Private Highrise Property with GWR Method**
 
--   Frame: Spatial interactions as flow
-    -   Discrete origin/destination pair
-    -   Encoded as `spatial interaction matrix` or `origin destination matrix`; (row, col) = (origin, destination)
 
 ## 1.2 Import Data:
 
