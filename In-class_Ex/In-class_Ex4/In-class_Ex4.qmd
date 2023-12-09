@@ -158,9 +158,9 @@ for (postcode in postcodes){
     - can build crawler instead to do this programmatically
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
-#| eval: false
 
 merged = merge(csv, found, by.x='postal_code', by.y='results.POSTAL', all=TRUE)
 write.csv(merged, file="data/aspatial/schools.csv")
@@ -203,6 +203,11 @@ schools_sf
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
+
+tmap_mode("view")
+tm_shape(schools_sf) + 
+  tm_dots() + 
+  tm_view(set.zoom.limits = c(11, 14))
 ```
 
 -   Note that distance matrix is symmetriccal about the diagonal;
