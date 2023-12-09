@@ -29,7 +29,9 @@ Because Rstudio regularly crashes with Quarto when I try to commit, here is a li
 
 -   Warning, these are incomplete, Prof Kam rushes through too quickly
 -   [In-class Exercise 1](In-class_Ex/In-class_Ex1/In-class_Ex1.html)
--   [In-class Exercise 2 Spatial Weights](In-class_Ex/In-class_Ex1/In-class_Ex2_Spatial.html)
--   [In-class Exercise 2 GLSA](In-class_Ex/In-class_Ex1/In-class_Ex2_GLSA.html)
--   [In-class Exercise 2 EHSA](In-class_Ex/In-class_Ex1/In-class_Ex2_EHSA.html)
+-   [In-class Exercise 2 Spatial Weights](In-class_Ex/In-class_Ex2/In-class_Ex2_Spatial.html)
+-   [In-class Exercise 2 GLSA](In-class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html)
+-   [In-class Exercise 2 EHSA](In-class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html)
+-   [In-class Exercise 3](In-class_Ex/In-class_Ex2/In-class_Ex3.html)
+-   [In-class Exercise 4](In-class_Ex/In-class_Ex2/In-class_Ex4.html)
 :::
