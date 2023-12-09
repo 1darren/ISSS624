@@ -130,6 +130,8 @@ pacman::p_load(tidyverse, sf, httr, tmap)
 - Add `#| echo:false` or `#| message:false` to squelch readouts
         
 ```{r}
+
+#| eval: false
 url<- "https://www.onemap.gov.sg/api/common/elastic/search"
 csv <- read_csv("data/aspatial/Generalinformationofschools.csv")
 postcodes <- csv$`postal_code`
@@ -204,40 +206,172 @@ schools_sf
 #| code-fold: true
 #| code-summary: "show code"
 
+#| eval: false
 tmap_mode("view")
 tm_shape(schools_sf) + 
   tm_dots() + 
   tm_view(set.zoom.limits = c(11, 14))
+tmap_mode("plot")
+
 ```
 
--   Note that distance matrix is symmetriccal about the diagonal;
 
-    -   Diagonal is always zero, as row_1 == col_1, row_2 == col_2, etc
+- Point-in-polygon count
+    - polygon & points should be in same projection, e.g. 3414
+- Why use `st_intersects()` over `st_within()`?
+    - can also; but intersection has same output 
+    - use of `lengths()` to count number of schools within mpsz
+    
+    
+- `business` dataset : SME businesses
 
-    -   We treat intra-subzone as zero
-
-    -   By default, function will infill as zero
-
-### Convert back to `sp` dataframe
-
--   Revert to earlier `sp` dataframe for computational efficiency with matrices
-
-    -   Technically now a `list` of data/polygon/proj4string; no longer a neat tibblr dataframe
-
-        -   `data` table still exists; just a different object
-
-        -   geometry now rendered in `polygon`
-
-        -   In `tidyverse` , everything is a single dataframe
-
-            -   To get specific column, need to call `mpsz_sp@data$column_name` i.e. need to call data table before calling column
-
--   this code chunk written without pipemarks ("a very un-`Tidy` way to write") to show alternatives
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
+
+#| eval: false
+mpsz <- st_read(dsn = "data/geospatial", layer = "MPSZ-2019") %>%
+  st_transform(crs = 3414)
+
+mpsz$`SCHOOL_COUNT` <- lengths(
+  st_intersects(
+    mpsz, schools_sf))
+mpsz
 ```
 
-ate
+
+- `business` dataset : SME businesses
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+#| eval: false
+business_sf <- st_read(dsn = "data/geospatial", layer = "business") %>%
+  st_transform(crs = 3414)
+
+mpsz$`BUSINESSL_COUNT` <- lengths(
+  st_intersects(
+    mpsz, business_sf))
+mpsz
+```
+
+- trick: plot base map of polygon map, before plotting dot map
+    - this will place points, lines over polygn
+- use `tmap_options(check.and.fix = True)` to close/reunite polygon
+    - eg geometry not closed, from busstop
+    
+- business, school location are attractiveness, AT DESTINATOIN
+    - trick: left join destin_sz = subzone c
+    - if join on origin, will be propulsive
+    
+    
+- for Poisson regression, we need to check for 0, coerce to 0.99
+    - just a small number below 1
+
+## Take Home Ex 2
+- put together hands-on-exercise
+
+
+- 325m: willingness of people to walk from home to bus stop/mrt is 750m 
+- pick one peak;
+    - weekday morn - go to work
+    - weekday aft - go home
+    - weekend/ph morn - go out
+    - weekend eve - go home
+    - edge case: people tend to go out on Friday nights, not Sunday nights; 
+- attractiveness/propulsiveness is different
+
+
+# IN-Class ex 4 
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+pacman::p_load(tmap, sf, DT, stplanr,
+               performance,
+               ggpubr, tidyverse)
+```
+
+-
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+flow_data <- read_rds("data/rds/flow_data_tidy.rds")
+
+# note that RETAIL_COUNT is mislabelled, should really be BUSINESS_COUNT
+glimpse(flow_data)
+```
+
+- steps: remove intrazonal trips
+    - by definition, all attractiveness/propulsiveness within the zone is the same; not useful
+    - we want to understand what makes people travel between zones
+    
+    
+- write to RDS after data cleaning, to avoid re-running when fitting SIM model
+    - also, clear environment of objects, to avoid storage
+    - for rigour, clear cache regularly 
+    
+    
+- 4 models under gravity
+    - unconstrained
+    - origin-constrained  : only have attractiveness factors (eg school, retail)
+    - destination-constrained
+    - doubly constrained
+- previously, population: not valuable 
+- distance still retained, as impedance;
+- for origin/destination constrained, you don't need intercept -- so, he has formula = ... -1
+    - na.action = na.exclude: failsafe drop NA 
+    
+- what we're looking at is log(SCHOOL_COUNT), log(RETAIL_COUNT), log(DIST)
+    - ideally, low signif codes => significant factors
+    - we also want to interpret the parameters correctly
+        - log(DIST) should be negative -> by right, always inverse distance
+        - attractiveness params should be positive, propulsiveness should be negative
+        - contrast: CRIME RATE should be negative (we want lower crime rate)
+        
+        
+- GLM does not provide r-squared
+- we define a function, `CalcRSquared` to calculate R^2 for goodness of fit
+    - base R has correlation function `cor()`
+    - we square -- positive/negative correlation is possible
+    
+- output of GLM, `orcSIM_Poisson`, is a model object / list of 30 objects
+    - some objects are:
+        - `coefficients` for column/variables
+        - `residuals`` errors for each interzonal flow <- can be joined to inter_zonal flow
+        - `fitted.values` expected_Y based on model
+        
+- can be extracted using as_dataframe() with `orcSIM_Poisson$residuals`
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+CalcRSquared <- function(observed, estimated){
+  r <- cor(observed, estimated)
+  R2 <- r^2
+  R2
+}
+
+# CalcRSquared( $trips, $fitted.values)
+
+
+# performance_rmse(orcSIM_Poisson, normalized = False)
+# get raw RMSE instead of normalised value 
+```
+
+- for doubly-constrained, "don't need to worry about intercept" don't need to -1
+- use chap16#model-compariosn 
+    - lowest RMSE si morebest
+- multiplot if RMSE is large, scatter is larger
+    - may want to drop that one massive outlier   
+
+
+
 
