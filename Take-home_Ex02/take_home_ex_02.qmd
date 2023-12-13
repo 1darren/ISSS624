@@ -71,6 +71,8 @@ This function calls `pacman` to load sf, tidyverse, tmap, knitr packages;
 
 -   `tmap` : For thematic mapping; powerful mapping package;
 -   `sf` : for geospatial data handling, but also geoprocessing: buffer, point-in-polygon count, etc;
+-   `sp` : for `spDists()` at high speed
+-   `reshape2` : for `melt()` instead of `pivot_longer()`
 -   `sfdep` : useful functions for creating weight matrix, LISA calculations etc;
 -   `tidyverse` : for non-spatial data handling; commonly used R package and contains `dplyr` for dataframe manipulation and `ggplot` for data visualization;
 -   `DT`: for displaying datatables;
@@ -78,7 +80,10 @@ This function calls `pacman` to load sf, tidyverse, tmap, knitr packages;
 -   `stplanar`: for creating desire lines to visualize O/D flows
 
 ```{r}
-pacman::p_load(tmap, sf, sfdep, tidyverse, DT, leaflet, stplanr )
+pacman::p_load(tmap, sf, sfdep, tidyverse, DT, leaflet, stplanr, sp, reshape2)
+
+devtools::install_github("thomasp85/patchwork")
+library(patchwork)
 ```
 
 ## 1.2 Import Geospatial Data
@@ -453,6 +458,7 @@ tmap_mode("plot")
 #| code-fold: true
 #| code-summary: "show code"
 
+
 bus_stop_hexgrid_id <- subset(bus_stop_hexgrid_id, grid_id != 1)
 
 cat("\nNumber of bus stops\t:", length(unique(bus_stop_hexgrid_id$BUS_STOP_N)))
@@ -575,21 +581,305 @@ flowLine <- od2line(flow = od_data1,
 summary(od_data1$SUM_TRIPS)
 ```
 
+- Quick exploration: most values are below 500
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+lplot <- ggplot(data = flowLine, aes(x=SUM_TRIPS, y=ORIGIN_HEX)) +
+  geom_point()  +
+  labs(title = "Histogram with Different Fill Colors",
+       x = "Value",
+       y = "Frequency") + 
+  geom_vline(xintercept = 1000, colour="red")
+rplot1 <- ggplot(data = flowLine, 
+                aes(x=SUM_TRIPS)) +
+  geom_histogram(breaks=seq(0, 20000, by = 1000)) + 
+  geom_vline(xintercept = 1000, colour="red")
+rplot2 <- ggplot(data = flowLine, 
+                aes(x=SUM_TRIPS)) +
+  geom_histogram(breaks=seq(0, 2000, by = 500)) + 
+  geom_vline(xintercept = 1000, colour="red")
+
+lplot / (rplot1 + rplot2)
+```
 
 
 ```{r}
+
+custom_palette <- c('#fee090','#d73027','#72001a', '#313695')
 tmap_mode("plot")
 tm_shape(hexagon_sf) +
   tm_polygons() +
 flowLine %>%  
   filter(SUM_TRIPS >= 1000) %>%  
-tm_shape() +
-  tm_lines(lwd = "SUM_TRIPS",
-           style = "quantile",
+  tm_shape() +
+  tm_lines(col = "SUM_TRIPS",
+           lwd = "SUM_TRIPS",
+           palette = custom_palette,
+           style = "fixed",
+           breaks = c(1000, 2000, 4000, 8000, 100000),
            scale = c(0.1, 1, 3, 5, 7, 10),
            n = 6,
-           alpha = 0.3)
+           alpha = 0.8)
 ```
+- Plotting trips over 10,000:
+    - 150 trips over 10,000
+    - 20 trips over 20,000
+
+```{r}
+flowLine[flowLine$SUM_TRIPS>=20000,]
+```
+
+```{r}
+
+custom_palette <- c('#fee090','#fee090','#d73027','#d73027','#72001a', '#313695')
+tmap_mode("plot")
+tm_shape(hexagon_sf) +
+  tm_polygons() +
+flowLine %>%  
+  filter(SUM_TRIPS >= 10000) %>%  
+  tm_shape() +
+  tm_lines(col = "SUM_TRIPS",
+           lwd = "SUM_TRIPS",
+           palette = custom_palette,
+           style = "jenks",,
+           scale = c(1, 2, 4, 8, 10, 14),
+           n = 6,
+           alpha = 0.8)
+```
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+
+od_data1_origin <- od_data1 %>%
+  group_by(ORIGIN_HEX) %>%
+  summarise(SUM_ORIG_TRIPS = sum(SUM_TRIPS))
+
+
+
+orig_hexagon_sf <- left_join(hexagon_sf, od_data1_origin, 
+            by = c("grid_id" = "ORIGIN_HEX")) %>%
+  select(grid_id, 
+         SUM_ORIG_TRIPS, raw_hex_grid) %>%
+  drop_na() 
+
+ggplot(orig_hexagon_sf, aes(x = grid_id , y = SUM_ORIG_TRIPS)) +
+  geom_boxplot(fill = "lightblue", color = "black", outlier.shape = 16, outlier.colour = "red") +
+  geom_point(position = position_jitter(width = 0.2), color = "red", size = .5) +
+  scale_y_log10() +
+  labs(title = "Boxplot with Outliers Highlighted",
+       x = "Category",
+       y = "Value")
+
+
+
+```
+
+- find top 10% of tirps by origin hexes origin
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+origin_threshold <- quantile(orig_hexagon_sf$SUM_ORIG_TRIPS,  0.99) #237114
+orig_trips_q90   <- quantile(orig_hexagon_sf$SUM_ORIG_TRIPS,  0.9) #237114
+orig_trips_q99   <- quantile(orig_hexagon_sf$SUM_ORIG_TRIPS,  0.99) #237114
+orig_trips_q999  <- quantile(orig_hexagon_sf$SUM_ORIG_TRIPS,  0.999) #237114
+custom_origin_breaks <- c(0, orig_trips_q90, orig_trips_q99, orig_trips_q999, Inf)
+
+
+# orig_hexagon_sf[orig_hexagon_sf$SUM_ORIG_TRIPS>500000,]
+
+
+# custom_origin_breaks
+
+# filter(orig_hexagon_sf, SUM_ORIG_TRIPS >= origin_threshold) 
+
+
+tmap_mode("plot")
+tm_shape(mpsz) +
+  tm_polygons() +
+tm_shape(orig_hexagon_sf) +
+  tm_polygons(col="SUM_ORIG_TRIPS", palette="YlGnBu", style = "fixed", breaks = custom_origin_breaks)
+
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+tmap_mode("plot")
+tm_shape(mpsz) +
+  tm_polygons() +
+tm_shape(filter(orig_hexagon_sf, SUM_ORIG_TRIPS >= 398408.9) ) +
+  tm_polygons(col="SUM_ORIG_TRIPS", palette="-plasma") + 
+flowLine %>%  
+  filter(ORIGIN_HEX %in% c(279, 771, 2004)) %>%  
+  tm_shape() +
+  tm_lines(col = "SUM_TRIPS",
+           lwd = "SUM_TRIPS",
+           palette = custom_palette,
+           style = "quantile",
+           scale = c(1, 2, 4, 8, 10, 14),
+           n = 6,
+           alpha = 0.8)
+# tm_basemap(providers$OneMapSG.Grey) + 
+#   tm_shape(hexagon_sf) +
+#   tm_fill(
+#     col = "n_bus_stops",
+#     palette = "-plasma",
+#     style = "cont",
+#     
+#     breaks = c(0, 1, 2
+
+```
+
+- plot top 10 % of hexes by destination
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+od_data1_destin <- od_data1 %>%
+  group_by(DESTIN_HEX) %>%
+  summarise(SUM_DEST_TRIPS = sum(SUM_TRIPS))
+
+
+
+dest_hexagon_sf <- left_join(hexagon_sf, od_data1_destin, 
+            by = c("grid_id" = "DESTIN_HEX")) %>%
+  select(grid_id, 
+         SUM_DEST_TRIPS, raw_hex_grid) %>%
+  drop_na() 
+
+
+dest_trips_q90   <- quantile(dest_hexagon_sf$SUM_DEST_TRIPS,  0.9) #237114
+dest_trips_q99   <- quantile(dest_hexagon_sf$SUM_DEST_TRIPS,  0.99) #237114
+dest_trips_q999  <- quantile(dest_hexagon_sf$SUM_DEST_TRIPS,  0.999) #237114
+custom_destin_breaks <- c(0, dest_trips_q90, dest_trips_q99, dest_trips_q999, Inf)
+
+tmap_mode("plot")
+tm_shape(mpsz) +
+  tm_polygons() +
+tm_shape(dest_hexagon_sf) +
+  tm_polygons(col="SUM_DEST_TRIPS", palette="YlOrRd", style = "fixed", breaks = custom_origin_breaks)
+```
+
+## 1.2 computing Distance matrix
+- calculate & find top 10% of tirps by destin hexes 
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+hexagon_sf <- subset(hexagon_sf, grid_id != 1)
+hexagon_sp <- as(hexagon_sf, "Spatial")
+distance_matrix <- spDists(hexagon_sp, 
+                longlat = FALSE)
+head(distance_matrix, n=c(10, 10))
+```
+
+- melt distance matrix into distance pair
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+distPair <- melt(distance_matrix) %>%
+  rename(dist = value
+         , grid_id_from = Var1
+         , grid_id_to = Var2)
+head(distPair, 10)
+
+```
+
+
+
+- melt distance matrix into distance pair
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+distPair %>%
+  filter(dist > 0) %>%
+  summary()
+```
+- Minimum distance 375
+- We will arbirtraitly insert 50m into interzonal distance 
+
+```{r}
+distPair$dist <- ifelse(distPair$dist == 0,
+                        50, distPair$dist)
+distPair %>%
+  summary()
+```
+```{r}
+write_rds(distPair, "data/rds/distPair.rds") 
+```
+
+
+## 1.3 prepare flow data
+
+```{r}
+od_data
+
+od_data$od_no_intra <- ifelse(
+  od_data$ORIGIN_HEX == od_data$DESTIN_HEX, 
+  0, od_data$SUM_TRIPS)
+od_data$offset <- ifelse(
+  od_data$ORIGIN_HEX == od_data$DESTIN_HEX, 
+  0.000001, 1)
+
+od_data$ORIGIN_HEX <- as.factor(od_data$ORIGIN_HEX)
+od_data$DESTIN_HEX <- as.factor(od_data$DESTIN_HEX)
+
+od_data_distpair <- od_data %>%
+  left_join (distPair,
+             by = c("ORIGIN_HEX" = "grid_id_from",
+                    "DESTIN_HEX" = "grid_id_to"))
+od_data_distpair
+```
+
+- visualize dependent variable
+```{r}
+ggplot(data = od_data_distpair,
+       aes(x = SUM_TRIPS)) +
+  geom_histogram()
+```
+
+
+
+- visualize dependent variable
+```{r}
+ggplot(data = od_data_distpair,
+       aes(x = log(dist),
+           y = log(SUM_TRIPS))) +
+  geom_point() +
+  geom_smooth(method = lm)
+```
+
+- check no zero values
+```{r}
+summary(od_data_distpair)
+```
+
+
+
+- unconstrained
+```{r}
+uncSIM <- glm(formula = SUM_TRIPS ~ 
+                log(dist),
+              family = poisson(link = "log"),
+              data = od_data_distpair,
+              na.action = na.exclude)
+uncSIM
+
+```
+
+
+
+
 
 ### 1.6.2 Identify Bus Trip Details For Each Hexagon `grid_id`
 
@@ -642,6 +932,26 @@ head(hexagon_sf)
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
+
+
+custom_breaks <- c(seq(0, 50000, by = 5000), 565000)
+
+lplot <- ggplot(data = hexagon_sf, aes(x=TRIPS, y=grid_id)) +
+  geom_point()  +
+  labs(title = "Histogram with Different Fill Colors",
+       x = "Value",
+       y = "Frequency") + 
+  geom_vline(xintercept = 20000, colour="red")
+rplot <- ggplot(data = hexagon_sf[hexagon_sf$TRIPS <50001, ]
+                , aes(x=TRIPS)) +
+geom_histogram() + #breaks=seq(0, 50000, by = 5000) 
+  geom_vline(xintercept = 20000, colour="red")
+
+lplot / rplot
+
+# str(hexagon_sf$TRIPS)
+
+
 # gather(grid_trips_df, key = "Peak", value = "Trips", -grid_id) %>%
 #   ggplot( aes(x=grid_id, y='TRIPS', fill=grid_id)) +
 #   geom_boxplot() + 
