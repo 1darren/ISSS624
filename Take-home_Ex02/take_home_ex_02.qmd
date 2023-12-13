@@ -700,7 +700,7 @@ custom_origin_breaks <- c(0, orig_trips_q90, orig_trips_q99, orig_trips_q999, In
 
 
 tmap_mode("plot")
-tm_shape(mpsz) +
+tm_shape(mpsz_sf) +
   tm_polygons() +
 tm_shape(orig_hexagon_sf) +
   tm_polygons(col="SUM_ORIG_TRIPS", palette="YlGnBu", style = "fixed", breaks = custom_origin_breaks)
@@ -712,7 +712,7 @@ tm_shape(orig_hexagon_sf) +
 #| code-summary: "show code"
 
 tmap_mode("plot")
-tm_shape(mpsz) +
+tm_shape(mpsz_sf) +
   tm_polygons() +
 tm_shape(filter(orig_hexagon_sf, SUM_ORIG_TRIPS >= 398408.9) ) +
   tm_polygons(col="SUM_ORIG_TRIPS", palette="-plasma") + 
@@ -761,7 +761,7 @@ dest_trips_q999  <- quantile(dest_hexagon_sf$SUM_DEST_TRIPS,  0.999) #237114
 custom_destin_breaks <- c(0, dest_trips_q90, dest_trips_q99, dest_trips_q999, Inf)
 
 tmap_mode("plot")
-tm_shape(mpsz) +
+tm_shape(mpsz_sf) +
   tm_polygons() +
 tm_shape(dest_hexagon_sf) +
   tm_polygons(col="SUM_DEST_TRIPS", palette="YlOrRd", style = "fixed", breaks = custom_origin_breaks)
@@ -831,9 +831,9 @@ od_data$offset <- ifelse(
   od_data$ORIGIN_HEX == od_data$DESTIN_HEX, 
   0.000001, 1)
 
-od_data$ORIGIN_HEX <- as.factor(od_data$ORIGIN_HEX)
-od_data$DESTIN_HEX <- as.factor(od_data$DESTIN_HEX)
-
+# od_data$ORIGIN_HEX <- as.factor(od_data$ORIGIN_HEX)
+# od_data$DESTIN_HEX <- as.factor(od_data$DESTIN_HEX)
+# 
 od_data_distpair <- od_data %>%
   left_join (distPair,
              by = c("ORIGIN_HEX" = "grid_id_from",
