@@ -80,7 +80,7 @@ This function calls `pacman` to load sf, tidyverse, tmap, knitr packages;
 -   `stplanar`: for creating desire lines to visualize O/D flows
 
 ```{r}
-pacman::p_load(tmap, sf, sfdep, tidyverse, DT, leaflet, stplanr, sp, reshape2)
+pacman::p_load(tmap, sf, sfdep, tidyverse, DT, leaflet, stplanr, sp, reshape2, wdpar)
 
 devtools::install_github("thomasp85/patchwork")
 library(patchwork)
@@ -998,4 +998,273 @@ This means that we will have to consider Weekday and Weekend peaks on different 
 I note that these visualizations only scrape the surface of understanding the data. However, this is not the focus of our study; we do these quick visualizations only to provide better context for our study.
 :::
 
+# 2. Preparing three propulsive and three attractiveness variables
+## 2.1 Preparing Business:
+
+- read in business values
+- check st_crs: correct
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+business_sf <- st_read(dsn = "data/geospatial",
+                      layer = "Business")
+st_crs(business_sf)
+```
+
+- quick visualization
+```{r}
+
+tmap_mode("plot")
+# tmap_options(check.and.fix = TRUE)
+tm_shape(hexagon_sf) +
+  tm_polygons() +
+tm_shape(business_sf) +
+  tm_dots()
+
+```
+
+- point-in-plot count, test for NA
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+hexagon_sf$`BUSINESS_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, business_sf))
+summary(hexagon_sf$BUSINESS_COUNT)
+
+# hexagon_sf[hexagon_sf$BUSINESS_COUNT > 30,]
+
+# hexagon_sf[is.na(hexagon_sf$BUSINESS_COUNT),]
+
+```
+
+
+## 2.2 Repeat steps for various other factors:
+
+::: {.panel-tabset}
+
+## Entertainment 
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+entertn_sf <- st_read(dsn = "data/geospatial",
+                      layer = "entertn")
+# st_crs(entertn_sf)
+
+hexagon_sf$`ENTERTAIN_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, entertn_sf))
+summary(hexagon_sf$ENTERTAIN_COUNT)
+```
+
+
+## FNB 
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+fnb_sf <- st_read(dsn = "data/geospatial",
+                      layer = "F&B")
+# st_crs(fnb_sf)
+
+hexagon_sf$`FNB_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, fnb_sf))
+summary(hexagon_sf$FNB_COUNT)
+```
+
+
+
+## Finserv
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+finserv_sf <- st_read(dsn = "data/geospatial",
+                      layer = "FinServ")
+# st_crs(finserv_sf)
+
+
+hexagon_sf$`FINSERV_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, finserv_sf))
+summary(hexagon_sf$FINSERV_COUNT)
+```
+
+## Leisure
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+leisure_sf <- st_read(dsn = "data/geospatial",
+                      layer = "Liesure&Recreation")
+# st_crs(leisure_sf)
+
+
+hexagon_sf$`LEISURE_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, leisure_sf))
+summary(hexagon_sf$LEISURE_COUNT)
+```
+
+## Retail
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+retail_sf <- st_read(dsn = "data/geospatial",
+                      layer = "Retails")
+# st_crs(retail_sf)
+
+
+hexagon_sf$`RETAIL_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, retail_sf))
+summary(hexagon_sf$RETAIL_COUNT)
+```
+
+## Train Station Exit 
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+mrt_exit_sf <- st_read(dsn = "data/geospatial",
+                      layer = "Train_Station_Exit_Layer")  %>%
+  st_transform(crs=3414)
+st_crs(mrt_exit_sf)
+
+
+hexagon_sf$`MRT_EXIT_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, mrt_exit_sf))
+summary(hexagon_sf$MRT_EXIT_COUNT)
+```
+
+
+## Data
+- First, let's write hexagon_sf to rds 
+```{r}
+write_rds(hexagon_sf, "data/rds/hexagon_features.rds")
+head(hexagon_sf)
+```
+- Now we perform plot of layers
+```{r}
+tmap_mode("view")
+
+tm <- tm_shape(hexagon_sf, group="FINSERV_COUNT") +
+ tm_borders(group="FINSERV_COUNT") + 
+ tm_fill(col = "FINSERV_COUNT", 
+         palette = "Greens",
+         style = "jenks",
+         group="FINSERV_COUNT") + 
+  
+ tm_shape(hexagon_sf, group="FNB_COUNT") +
+ tm_borders(group="FNB_COUNT") + 
+ tm_fill(col = "FNB_COUNT", 
+         palette = "Reds",
+         style = "jenks",
+         group="FNB_COUNT") + 
+  
+ tm_shape(hexagon_sf, group="ENTERTAIN_COUNT") +
+ tm_borders(group="ENTERTAIN_COUNT") + 
+ tm_fill(col = "ENTERTAIN_COUNT", 
+         palette = "Blues",
+         style = "jenks",
+         group="ENTERTAIN_COUNT") + 
+  
+ tm_shape(hexagon_sf, group="LEISURE_COUNT") +
+ tm_borders(group="LEISURE_COUNT") + 
+ tm_fill(col = "LEISURE_COUNT", 
+         palette = "Purples",
+         style = "jenks",
+         group="LEISURE_COUNT")
+
+
+tm %>% 
+  tmap_leaflet() %>%
+  hideGroup(c("FNB_COUNT", "ENTERTAIN_COUNT", "LEISURE_COUNT")) %>%
+  addLayersControl(
+    overlayGroups = c("FINSERV_COUNT", "FNB_COUNT",
+                      "ENTERTAIN_COUNT", "LEISURE_COUNT"),
+    options = layersControlOptions(collapsed = FALSE),
+    position = "topleft"
+  )
+
+# tmap_mode("plot")
+# # tmap_options(check.and.fix = TRUE)
+# tm_shape(hexagon_sf) +
+#   tm_polygons() +
+# tm_shape(entertn_sf) +
+#   tm_dots()
 # 
+# tmap_mode("view")
+# tm_shape(hexagon_sf[hexagon_sf$FINSERV_COUNT > 70, ]) +
+#   tm_polygons() +
+#   tm_shape(hexagon_sf[hexagon_sf$FNB_COUNT > 70, ]) +
+#   tm_polygons()  +
+#   tm_shape(hexagon_sf[hexagon_sf$ENTERTAIN_COUNT > 6, ]) +
+#   tm_polygons()  +
+#   tm_shape(hexagon_sf[hexagon_sf$LEISURE_COUNT > 20, ]) +
+#   tm_polygons()  +
+  # tm_shape(hexagon_sf[hexagon_sf$RETAIL_COUNT > 100, ]) +
+  # tm_polygons()
+
+
+
+```
+
+:::
+                    
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+# entertn_sf <- st_read(dsn = "data/geospatial",
+#                       layer = "entertn")
+# st_crs(entertn_sf)
+# 
+# fnb_sf <- st_read(dsn = "data/geospatial",
+#                       layer = "F&B")
+# st_crs(fnb_sf)
+# 
+# finserv_sf <- st_read(dsn = "data/geospatial",
+#                       layer = "FinServ")
+# st_crs(finserv_sf)
+
+leisure_sf <- st_read(dsn = "data/geospatial",
+                      layer = "Liesure&Recreation")
+st_crs(leisure_sf)
+
+
+
+leisure_sf <- st_read(dsn = "data/geospatial",
+                      layer = "Liesure&Recreation")
+st_crs(leisure_sf)
+
+```
+
+
+
+
+- read & Fix mrt
+- use st_make_valid() does not work, so I sourced wdpar::st_repair_geometry [`wdpar source`](https://search.r-project.org/CRAN/refmans/wdpar/html/st_repair_geometry.html), based on [`prepr`](https://github.com/dickoa/prepr) package to repair geometries
+    - thereafter we need to coerce from EPSG9001 to svy21
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+library(wdpar)
+
+raw_mrt_sf <- st_read(dsn = "data/geospatial",
+                      layer = "RapidTransitSystemStation")
+mrt_sf <- st_repair_geometry(raw_mrt_sf) %>%
+  st_transform(crs=3414)
+st_crs(mrt_sf)
+
+
+tmap_mode("plot")
+# tmap_options(check.and.fix = TRUE)
+tm_shape(hexagon_sf) +
+  tm_polygons() +
+tm_shape(mrt_sf) +
+  tm_dots()
+```
