@@ -774,11 +774,13 @@ tm_shape(dest_hexagon_sf) +
 #| code-fold: true
 #| code-summary: "show code"
 
-hexagon_sf <- subset(hexagon_sf, grid_id != 1)
+hexagon_sf <- subset(hexagon_sf, grid_id != 1) # run without this line for 2172 hexagons
 hexagon_sp <- as(hexagon_sf, "Spatial")
 distance_matrix <- spDists(hexagon_sp, 
                 longlat = FALSE)
 head(distance_matrix, n=c(10, 10))
+# dim(distance_matrix)
+# hexagon_sf[hexagon_sf$grid_id == 2172,]
 ```
 
 - melt distance matrix into distance pair
@@ -792,6 +794,9 @@ distPair <- melt(distance_matrix) %>%
          , grid_id_to = Var2)
 head(distPair, 10)
 
+# 1919	2172	
+# subset(distPair, grid_id_from %in% c(1919, 2172) & grid_id_to  %in% c(1919, 2172))
+# distPair[distPair$grid_id_from == 1919 & distPair$grid_id_to == 2172, ]
 ```
 
 
@@ -838,12 +843,18 @@ od_data_distpair <- od_data %>%
   left_join (distPair,
              by = c("ORIGIN_HEX" = "grid_id_from",
                     "DESTIN_HEX" = "grid_id_to"))
-od_data_distpair
+od_data_distpair[od_data_distpair$od_no_intra == 0, ]
+```
+
+- however, we should filter this down to interzonal flow:
+```{r}
+inter_zonal_flow <- od_data_distpair %>%
+  filter(od_no_intra > 0)
 ```
 
 - visualize dependent variable
 ```{r}
-ggplot(data = od_data_distpair,
+ggplot(data = inter_zonal_flow,
        aes(x = SUM_TRIPS)) +
   geom_histogram()
 ```
@@ -852,7 +863,7 @@ ggplot(data = od_data_distpair,
 
 - visualize dependent variable
 ```{r}
-ggplot(data = od_data_distpair,
+ggplot(data = inter_zonal_flow,
        aes(x = log(dist),
            y = log(SUM_TRIPS))) +
   geom_point() +
@@ -861,7 +872,7 @@ ggplot(data = od_data_distpair,
 
 - check no zero values
 ```{r}
-summary(od_data_distpair)
+summary(inter_zonal_flow)
 ```
 
 
@@ -1264,7 +1275,170 @@ st_crs(mrt_sf)
 tmap_mode("plot")
 # tmap_options(check.and.fix = TRUE)
 tm_shape(hexagon_sf) +
-  tm_polygons() +
+  tm_polygons(col = "MRT_EXIT_COUNT", palette = "-Spectral") +
 tm_shape(mrt_sf) +
-  tm_dots()
+  tm_dots(col='red')
+
+```
+
+- Largely seem to overlap;
+- Based on reasoning, MRT Exits seem like a more likely source of entry points, we will use that
+
+# 3. Spatial Interactive Models
+
+## 3.1 Create SIM_DATA
+- Combine Flow data with hexagon sf
+
+- Propulsive:
+  - business_count
+  - MRT_EXIT_COUNT
+  - finserv count
+- Attractive:
+  - leisure_count
+  - fnb_count
+  - entertainment_count
+
+### 3.1.P Propulsive count
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+prop_sf <- hexagon_sf %>%
+  select(grid_id, BUSINESS_COUNT, FNB_COUNT, FINSERV_COUNT, MRT_EXIT_COUNT) %>%
+  st_drop_geometry()
+inter_zonal_flow_prop <- inter_zonal_flow %>%
+  left_join(prop_sf,
+            by = c("ORIGIN_HEX" = "grid_id")) %>%
+  rename(P_MRT_EXIT_COUNT = MRT_EXIT_COUNT,
+         P_FNB_COUNT = FNB_COUNT, 
+         P_BUSINESS_COUNT = BUSINESS_COUNT)
+inter_zonal_flow_prop
+```
+
+
+### 3.1.P Attractiveness count
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+attr_sf <- hexagon_sf %>%
+  select(grid_id, ENTERTAIN_COUNT , FNB_COUNT, LEISURE_COUNT, RETAIL_COUNT, MRT_EXIT_COUNT) %>%
+  st_drop_geometry()
+SIM_data <- inter_zonal_flow_prop %>%
+  left_join(attr_sf,
+            by = c("DESTIN_HEX" = "grid_id")) %>%
+  rename(A_MRT_EXIT_COUNT = MRT_EXIT_COUNT,
+         A_FNB_COUNT = FNB_COUNT, 
+         A_FINSERV_COUNT = FINSERV_COUNT,
+         A_ENTERTAIN_COUNT = ENTERTAIN_COUNT, 
+         A_LEISURE_COUNT = LEISURE_COUNT, 
+         A_RETAIL_COUNT = RETAIL_COUNT)
+SIM_data
+```
+
+- Check summary
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+summary(SIM_data)
+```
+
+- We will coerce all 0 values to 0.99
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+replace_zeroes_columns <-  c("P_BUSINESS_COUNT", "P_FNB_COUNT", "A_FINSERV_COUNT", "P_MRT_EXIT_COUNT", "A_ENTERTAIN_COUNT", "A_FNB_COUNT", "A_LEISURE_COUNT", "A_RETAIL_COUNT", "A_MRT_EXIT_COUNT")
+
+# Assuming 'your_data' is your data frame and 'columns_to_update' is a vector of column names
+# Apply a function to replace 0 with 1 in specified columns
+SIM_data[, replace_zeroes_columns] <- apply(SIM_data[, replace_zeroes_columns], 2, function(x) replace(x, x == 0, 0.99))
+
+summary(SIM_data)
+```
+
+- Write to RDS
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+write_rds(SIM_data,
+          "data/rds/SIM_data_tidy.rds")
+```
+
+## 3.1 Create SIM_DATA
+- Combine Flow data with hexagon sf
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+uncSIM <- glm(formula = SUM_TRIPS ~ 
+                log(P_BUSINESS_COUNT) + 
+                log(P_FNB_COUNT) +
+                log(A_FINSERV_COUNT) + 
+                log(P_MRT_EXIT_COUNT) +
+                log(A_ENTERTAIN_COUNT) + 
+                log(A_FNB_COUNT) +
+                log(A_LEISURE_COUNT) + 
+                log(A_FNB_COUNT) +
+                log(A_RETAIL_COUNT) + 
+                log(A_MRT_EXIT_COUNT) +
+                log(dist),
+              family = poisson(link = "log"),
+              data = SIM_data,
+              na.action = na.exclude)
+uncSIM
+
+SIM_data[which(! complete.cases(SIM_data)), ]
+```
+
+
+## 3.1 Create SIM_DATA
+- Combine Flow data with hexagon sf
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+# CalcRSquared <- function(observed,estimated){
+#   r <- cor(observed,estimated)
+#   R2 <- r^2
+#   R2
+# }
+# CalcRSquared(uncSIM$data$SUM_TRIPS, uncSIM$fitted.values)
+# 185274
+# 185252 - 22
+```
+
+
+## 3.1 Create SIM_DATA
+- Combine Flow data with hexagon sf
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+```
+
+
+## 3.1 Create SIM_DATA
+- Combine Flow data with hexagon sf
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+```
+
+## 3.1 Create SIM_DATA
+- Combine Flow data with hexagon sf
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
 ```

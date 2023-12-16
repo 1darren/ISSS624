@@ -34,4 +34,5 @@ Because Rstudio regularly crashes with Quarto when I try to commit, here is a li
 -   [In-class Exercise 2 EHSA](In-class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html)
 -   [In-class Exercise 3](In-class_Ex/In-class_Ex2/In-class_Ex3.html)
 -   [In-class Exercise 4](In-class_Ex/In-class_Ex2/In-class_Ex4.html)
+-   [In-class Exercise 5](In-class_Ex/In-class_Ex5/In-class_Ex5.html)
 :::

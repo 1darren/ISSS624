@@ -1,0 +1,268 @@
+---
+title: "In-class Exercise 5: Spatial Econometrics"
+date: "16 Dec 2023"
+date-modified: "last-modified"
+format: html
+execute:
+  echo: true
+  eval: true
+  warning: false
+editor: source
+---
+
+::: {.callout-note collapse="true"}
+### Hidden: In-Class Lecture notes
+
+## In-Class Lecture Notes
+
+"In real world, there is no concept of equality." -- Prof Kam
+
+```         
+
+### Take-home Exercise notes:
+- Econometrics as "applied regression model";
+  - A continuation of spatial weights + regression model 
+  - Typically, 3-4 terms 
+  
+- Quantitative Analysis of economic phenomenon, based on development of theory & observation
+  - Statistics applied to econometrics
+- Spatial Econometrics: study of economic phenomena with spatial dependence; economic activity is related to location of factors of production.
+
+- In-Class Exercise:
+    - Data Preparation (skipped): focus on part 2, 
+    - Model Calibration
+
+
+ 
+```
+:::
+
+# 5. In-Class Ex 5
+
+## 5.1 Import Packages
+
+- First pre-load spflow from github directly:
+```{r}
+devtools::install_github("LukeCe/spflow")
+```
+
+-   `httr` HTML features, communicate with webserver
+
+-   `tidyverse` Data science work
+
+-   `tmap` Visual plotting
+
+-   `sf` Geospatial work
+
+-   `spflow` Spatial Econometric Interaction Models / Sum Product
+    - useful to perform SpaEcoIntMod without having to write low-level code
+
+```{r}
+pacman::p_load(tidyverse, sf, httr, tmap, spflow, tmap,
+               spdep, sp, Matrix, reshape2, knitr)
+```
+
+## 4.2 Geocoding
+
+-   OneMap: Offer online API
+
+    -   Reverse Geocoding: You provide geographical coordinates, they provide you info of that aare
+
+    -   `Search`: We pass in details (eg Building, Address) and retrieve X/Y or Lat/Long
+
+        -   LatLong is from 0 to 360
+
+        -   X, y is in metres
+
+        -   1 degree at equator is \>\>\> 1 degree at the pole; WGS84 is broadly useful but SVY21 is more accurate (Projected coordinate system, more accurate on-the-ground for distance
+        
+- Within Singapore context, we should look for datasets with postal code;
+    - We can then use OneMap API to generate X/Y or LAT/LONG
+    - If not, we can use street name + address + OneMap API
+        
+- Add `#| eval:false` to freeze the code block, to avoid re-running code during rendering; this makes recompiling HTML faster        
+
+- Add `#| echo:false` or `#| message:false` to squelch readouts
+        
+```{r}
+
+#| eval: false
+```
+
+- if run correctly, Zeng Hua Secondary School is the missing school
+- We save as CSV to do "backdoor" manual edit
+    - manually google for lat/long, add in decimal degree (1.389279, 103.7651)
+    - can build crawler instead to do this programmatically
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+
+```
+
+- import schoolcs.scv
+- rename cols to LATITUDE LONGITUE
+- retian only potla_code, school_name, lat, long
+
+- when feeding arguments, always specify LONGITUDE then LATITUDE because of cartesian coordinates convention (x, y) 
+- specify initial coords of initial untransformed data (WGS84, crs4326)
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+```
+
+-   `rds` saves the R object, preserving the classes;
+
+    -   `mpsz` was `sf` `tibble` dataframe in Hands-on Ex03; here it is reproduced in the same class from previously loaded
+
+    -   If we instead exported as shapefile, many details will be lost
+
+    -   Alternatively, we could perform st_read from previous
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+#| eval: false
+
+```
+
+
+- Point-in-polygon count
+    - polygon & points should be in same projection, e.g. 3414
+- Why use `st_intersects()` over `st_within()`?
+    - can also; but intersection has same output 
+    - use of `lengths()` to count number of schools within mpsz
+    
+    
+- `business` dataset : SME businesses
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+#| eval: false
+
+```
+
+
+- `business` dataset : SME businesses
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+#| eval: false
+
+```
+
+- trick: plot base map of polygon map, before plotting dot map
+    - this will place points, lines over polygn
+- use `tmap_options(check.and.fix = True)` to close/reunite polygon
+    - eg geometry not closed, from busstop
+    
+- business, school location are attractiveness, AT DESTINATOIN
+    - trick: left join destin_sz = subzone c
+    - if join on origin, will be propulsive
+    
+    
+- for Poisson regression, we need to check for 0, coerce to 0.99
+    - just a small number below 1
+
+
+# IN-Class ex 4 
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+pacman::p_load(tmap, sf, DT, stplanr,
+               performance,
+               ggpubr, tidyverse)
+```
+
+-
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+flow_data <- read_rds("data/rds/flow_data_tidy.rds")
+
+# note that RETAIL_COUNT is mislabelled, should really be BUSINESS_COUNT
+glimpse(flow_data)
+```
+
+- steps: remove intrazonal trips
+    - by definition, all attractiveness/propulsiveness within the zone is the same; not useful
+    - we want to understand what makes people travel between zones
+    
+    
+- write to RDS after data cleaning, to avoid re-running when fitting SIM model
+    - also, clear environment of objects, to avoid storage
+    - for rigour, clear cache regularly 
+    
+    
+- 4 models under gravity
+    - unconstrained
+    - origin-constrained  : only have attractiveness factors (eg school, retail)
+    - destination-constrained
+    - doubly constrained
+- previously, population: not valuable 
+- distance still retained, as impedance;
+- for origin/destination constrained, you don't need intercept -- so, he has formula = ... -1
+    - na.action = na.exclude: failsafe drop NA 
+    
+- what we're looking at is log(SCHOOL_COUNT), log(RETAIL_COUNT), log(DIST)
+    - ideally, low signif codes => significant factors
+    - we also want to interpret the parameters correctly
+        - log(DIST) should be negative -> by right, always inverse distance
+        - attractiveness params should be positive, propulsiveness should be negative
+        - contrast: CRIME RATE should be negative (we want lower crime rate)
+        
+        
+- GLM does not provide r-squared
+- we define a function, `CalcRSquared` to calculate R^2 for goodness of fit
+    - base R has correlation function `cor()`
+    - we square -- positive/negative correlation is possible
+    
+- output of GLM, `orcSIM_Poisson`, is a model object / list of 30 objects
+    - some objects are:
+        - `coefficients` for column/variables
+        - `residuals`` errors for each interzonal flow <- can be joined to inter_zonal flow
+        - `fitted.values` expected_Y based on model
+        
+- can be extracted using as_dataframe() with `orcSIM_Poisson$residuals`
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+CalcRSquared <- function(observed, estimated){
+  r <- cor(observed, estimated)
+  R2 <- r^2
+  R2
+}
+
+# CalcRSquared( $trips, $fitted.values)
+
+
+# performance_rmse(orcSIM_Poisson, normalized = False)
+# get raw RMSE instead of normalised value 
+```
+
+- for doubly-constrained, "don't need to worry about intercept" don't need to -1
+- use chap16#model-compariosn 
+    - lowest RMSE si morebest
+- multiplot if RMSE is large, scatter is larger
+    - may want to drop that one massive outlier   
+
+
+
+
