@@ -43,6 +43,7 @@ editor: source
 
 - First pre-load spflow from github directly:
 ```{r}
+#| eval: false
 devtools::install_github("LukeCe/spflow")
 ```
 
@@ -57,50 +58,75 @@ devtools::install_github("LukeCe/spflow")
 -   `spflow` Spatial Econometric Interaction Models / Sum Product
     - useful to perform SpaEcoIntMod without having to write low-level code
 
+
+-   `Matrix` optimised package for running computations on large Matrix
+
 ```{r}
 pacman::p_load(tidyverse, sf, httr, tmap, spflow, tmap,
                spdep, sp, Matrix, reshape2, knitr)
 ```
 
-## 4.2 Geocoding
+## 4.2 Loading data
 
--   OneMap: Offer online API
-
-    -   Reverse Geocoding: You provide geographical coordinates, they provide you info of that aare
-
-    -   `Search`: We pass in details (eg Building, Address) and retrieve X/Y or Lat/Long
-
-        -   LatLong is from 0 to 360
-
-        -   X, y is in metres
-
-        -   1 degree at equator is \>\>\> 1 degree at the pole; WGS84 is broadly useful but SVY21 is more accurate (Projected coordinate system, more accurate on-the-ground for distance
+-   Spflow requires:
+  - Spatial weights
+  - tibble df of OD Flows
+  - tibble df of explanatory variables
+      - by right, don't need to attach to origin or destination; 
+      - within the 9 models, it will identify the variables as "Origin" or "Destination
         
-- Within Singapore context, we should look for datasets with postal code;
-    - We can then use OneMap API to generate X/Y or LAT/LONG
-    - If not, we can use street name + address + OneMap API
         
-- Add `#| eval:false` to freeze the code block, to avoid re-running code during rendering; this makes recompiling HTML faster        
-
-- Add `#| echo:false` or `#| message:false` to squelch readouts
-        
+- load mpsz, busstop data
+  - use st_intersects to identify subzone with bus stops
+  - filter out mpsz with 0 busstops
+  
+  
 ```{r}
 
-#| eval: false
+mpsz <- st_read(dsn = "data/geospatial", 
+                 layer = "MPSZ-2019") %>%
+  st_transform(crs = 3414)
+# st_crs(mpsz)
+
+busstop <- st_read(dsn = "data/geospatial", 
+                 layer = "BusStop") %>%
+  st_transform(crs = 3414)
+
+
+mpsz$`BUSSTOP_COUNT` <- lengths(
+  st_intersects(
+    mpsz, busstop))
+
+mpsz_busstop <- mpsz %>%
+  filter(BUSSTOP_COUNT > 0)
+mpsz_busstop
 ```
 
-- if run correctly, Zeng Hua Secondary School is the missing school
-- We save as CSV to do "backdoor" manual edit
-    - manually google for lat/long, add in decimal degree (1.389279, 103.7651)
-    - can build crawler instead to do this programmatically
+## create spatial weights
+
+- "tricky way to make computation effective"
+    - derive centroids in one stpe
+    - create `mpsz_nb` with 3 different nb matrix techniques (contiguity, distance knn)
+- prof Kam has already shifted one busstop to avoid 
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
+centroids <- suppressWarnings({
+  st_point_on_surface(st_geometry(mpsz_busstop))
+})
+mpsz_nb <- list(
+  "by_contiguity" = poly2nb(mpsz_busstop), 
+  "by_distance" = dnearneigh(centroids, d1=0, d2=5000),
+  "by_knn" = knn2nb(knearneigh(centroids, 3))
+)
+mpsz_nb
 
 ```
+- note that `$by_contiguity` has no orphans;
+- note that `$by_distance` has one region, 313, with no neighbours;
+
 
 - import schoolcs.scv
 - rename cols to LATITUDE LONGITUE

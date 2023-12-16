@@ -80,10 +80,10 @@ This function calls `pacman` to load sf, tidyverse, tmap, knitr packages;
 -   `stplanar`: for creating desire lines to visualize O/D flows
 
 ```{r}
-pacman::p_load(tmap, sf, sfdep, tidyverse, DT, leaflet, stplanr, sp, reshape2, wdpar)
+pacman::p_load(tmap, sf, sfdep, tidyverse, DT, leaflet, stplanr, sp, reshape2, wdpar, patchwork)
 
-devtools::install_github("thomasp85/patchwork")
-library(patchwork)
+# devtools::install_github("thomasp85/patchwork")
+# library(patchwork)
 ```
 
 ## 1.2 Import Geospatial Data
@@ -1376,6 +1376,9 @@ write_rds(SIM_data,
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
+
+# important! change the grid_id to factor/categorical or character field
+# if numeric, treated as continuous variable
 
 uncSIM <- glm(formula = SUM_TRIPS ~ 
                 log(P_BUSINESS_COUNT) + 

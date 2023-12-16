@@ -204,7 +204,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#in-class-ex-5" id="toc-in-class-ex-5" class="nav-link active" data-scroll-target="#in-class-ex-5">5. In-Class Ex 5</a>
   <ul class="collapse">
   <li><a href="#import-packages" id="toc-import-packages" class="nav-link" data-scroll-target="#import-packages">5.1 Import Packages</a></li>
-  <li><a href="#geocoding" id="toc-geocoding" class="nav-link" data-scroll-target="#geocoding">4.2 Geocoding</a></li>
+  <li><a href="#loading-data" id="toc-loading-data" class="nav-link" data-scroll-target="#loading-data">4.2 Loading data</a></li>
+  <li><a href="#create-spatial-weights" id="toc-create-spatial-weights" class="nav-link" data-scroll-target="#create-spatial-weights">create spatial weights</a></li>
   </ul></li>
   <li><a href="#in-class-ex-4" id="toc-in-class-ex-4" class="nav-link" data-scroll-target="#in-class-ex-4">IN-Class ex 4</a></li>
   </ul>
@@ -280,6 +281,12 @@ Hidden: In-Class Lecture notes
 <section id="import-packages" class="level2">
 <h2 class="anchored" data-anchor-id="import-packages">5.1 Import Packages</h2>
 <ul>
+<li>First pre-load spflow from github directly:</li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">"LukeCe/spflow"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<ul>
 <li><p><code>httr</code> HTML features, communicate with webserver</p></li>
 <li><p><code>tidyverse</code> Data science work</p></li>
 <li><p><code>tmap</code> Visual plotting</p></li>
@@ -288,58 +295,148 @@ Hidden: In-Class Lecture notes
 <ul>
 <li>useful to perform SpaEcoIntMod without having to write low-level code</li>
 </ul></li>
+<li><p><code>Matrix</code> optimised package for running computations on large Matrix</p></li>
 </ul>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(tidyverse, sf, httr, tmap, spflow, tmap, spdep, Matrix, reshape2, knitr, devtools)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">"LukeCe/spflow"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(tidyverse, sf, httr, tmap, spflow, tmap,</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>               spdep, sp, Matrix, reshape2, knitr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="loading-data" class="level2">
+<h2 class="anchored" data-anchor-id="loading-data">4.2 Loading data</h2>
+<ul>
+<li>Spflow requires:</li>
+<li>Spatial weights</li>
+<li>tibble df of OD Flows</li>
+<li>tibble df of explanatory variables
+<ul>
+<li>by right, don’t need to attach to origin or destination;</li>
+<li>within the 9 models, it will identify the variables as “Origin” or “Destination</li>
+</ul></li>
+<li>load mpsz, busstop data
+<ul>
+<li>use st_intersects to identify subzone with bus stops</li>
+<li>filter out mpsz with 0 busstops</li>
+</ul></li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>mpsz <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/geospatial"</span>, </span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">layer =</span> <span class="st">"MPSZ-2019"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>
-── R CMD build ─────────────────────────────────────────────────────────────────
-* checking for file 'C:\Users\user\AppData\Local\Temp\RtmpmqoTOR\remotes3f5c1277164f\LukeCe-spflow-df91367/DESCRIPTION' ... OK
-* preparing 'spflow':
-* checking DESCRIPTION meta-information ... OK
-* installing the package to process help pages
-Loading required namespace: spflow
-* saving partial Rd database
-* checking for LF line-endings in source and make files and shell scripts
-* checking for empty or unneeded directories
-* building 'spflow_0.1.0.9010.tar.gz'
-</code></pre>
+<pre><code>Reading layer `MPSZ-2019' from data source 
+  `C:\1darren\ISSS624\In-class_Ex\In-class_Ex5\data\geospatial' 
+  using driver `ESRI Shapefile'
+Simple feature collection with 332 features and 6 fields
+Geometry type: MULTIPOLYGON
+Dimension:     XY
+Bounding box:  xmin: 103.6057 ymin: 1.158699 xmax: 104.0885 ymax: 1.470775
+Geodetic CRS:  WGS 84</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># st_crs(mpsz)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>busstop <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/geospatial"</span>, </span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">layer =</span> <span class="st">"BusStop"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Reading layer `BusStop' from data source 
+  `C:\1darren\ISSS624\In-class_Ex\In-class_Ex5\data\geospatial' 
+  using driver `ESRI Shapefile'
+Simple feature collection with 5159 features and 3 fields
+Geometry type: POINT
+Dimension:     XY
+Bounding box:  xmin: 3970.122 ymin: 26482.1 xmax: 48280.78 ymax: 52983.82
+Projected CRS: SVY21</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>mpsz<span class="sc">$</span><span class="st">`</span><span class="at">BUSSTOP_COUNT</span><span class="st">`</span> <span class="ot">&lt;-</span> <span class="fu">lengths</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_intersects</span>(</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    mpsz, busstop))</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>mpsz_busstop <span class="ot">&lt;-</span> mpsz <span class="sc">%&gt;%</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(BUSSTOP_COUNT <span class="sc">&gt;</span> <span class="dv">0</span>)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>mpsz_busstop</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 313 features and 7 fields
+Geometry type: MULTIPOLYGON
+Dimension:     XY
+Bounding box:  xmin: 2667.538 ymin: 21448.47 xmax: 50271.73 ymax: 50256.33
+Projected CRS: SVY21 / Singapore TM
+First 10 features:
+            SUBZONE_N SUBZONE_C       PLN_AREA_N PLN_AREA_C       REGION_N
+1    INSTITUTION HILL    RVSZ05     RIVER VALLEY         RV CENTRAL REGION
+2      ROBERTSON QUAY    SRSZ01  SINGAPORE RIVER         SR CENTRAL REGION
+3        FORT CANNING    MUSZ02           MUSEUM         MU CENTRAL REGION
+4    MARINA EAST (MP)    MPSZ05    MARINE PARADE         MP CENTRAL REGION
+5             SENTOSA    SISZ01 SOUTHERN ISLANDS         SI CENTRAL REGION
+6      CITY TERMINALS    BMSZ17      BUKIT MERAH         BM CENTRAL REGION
+7               ANSON    DTSZ10    DOWNTOWN CORE         DT CENTRAL REGION
+8        STRAITS VIEW    SVSZ01     STRAITS VIEW         SV CENTRAL REGION
+9     MARITIME SQUARE    BMSZ01      BUKIT MERAH         BM CENTRAL REGION
+10 TELOK BLANGAH RISE    BMSZ15      BUKIT MERAH         BM CENTRAL REGION
+   REGION_C                       geometry BUSSTOP_COUNT
+1        CR MULTIPOLYGON (((28481.45 30...             2
+2        CR MULTIPOLYGON (((28087.34 30...            10
+3        CR MULTIPOLYGON (((29542.53 31...             6
+4        CR MULTIPOLYGON (((35279.55 30...             2
+5        CR MULTIPOLYGON (((26879.04 26...             1
+6        CR MULTIPOLYGON (((27891.15 28...            10
+7        CR MULTIPOLYGON (((29201.07 28...             5
+8        CR MULTIPOLYGON (((31269.21 28...             4
+9        CR MULTIPOLYGON (((26920.02 26...            21
+10       CR MULTIPOLYGON (((27483.57 28...            11</code></pre>
 </div>
 </div>
 </section>
-<section id="geocoding" class="level2">
-<h2 class="anchored" data-anchor-id="geocoding">4.2 Geocoding</h2>
+<section id="create-spatial-weights" class="level2">
+<h2 class="anchored" data-anchor-id="create-spatial-weights">create spatial weights</h2>
 <ul>
-<li><p>OneMap: Offer online API</p>
+<li>“tricky way to make computation effective”
 <ul>
-<li><p>Reverse Geocoding: You provide geographical coordinates, they provide you info of that aare</p></li>
-<li><p><code>Search</code>: We pass in details (eg Building, Address) and retrieve X/Y or Lat/Long</p>
-<ul>
-<li><p>LatLong is from 0 to 360</p></li>
-<li><p>X, y is in metres</p></li>
-<li><p>1 degree at equator is &gt;&gt;&gt; 1 degree at the pole; WGS84 is broadly useful but SVY21 is more accurate (Projected coordinate system, more accurate on-the-ground for distance</p></li>
+<li>derive centroids in one stpe</li>
+<li>create <code>mpsz_nb</code> with 3 different nb matrix techniques (contiguity, distance knn)</li>
 </ul></li>
-</ul></li>
-<li><p>Within Singapore context, we should look for datasets with postal code;</p>
-<ul>
-<li>We can then use OneMap API to generate X/Y or LAT/LONG</li>
-<li>If not, we can use street name + address + OneMap API</li>
-</ul></li>
-<li><p>Add <code>#| eval:false</code> to freeze the code block, to avoid re-running code during rendering; this makes recompiling HTML faster</p></li>
-<li><p>Add <code>#| echo:false</code> or <code>#| message:false</code> to squelch readouts</p></li>
+<li>prof Kam has already shifted one busstop to avoid</li>
 </ul>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details>
+<summary>show code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>centroids <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>({</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_point_on_surface</span>(<span class="fu">st_geometry</span>(mpsz_busstop))</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>mpsz_nb <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"by_contiguity"</span> <span class="ot">=</span> <span class="fu">poly2nb</span>(mpsz_busstop), </span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"by_distance"</span> <span class="ot">=</span> <span class="fu">dnearneigh</span>(centroids, <span class="at">d1=</span><span class="dv">0</span>, <span class="at">d2=</span><span class="dv">5000</span>),</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"by_knn"</span> <span class="ot">=</span> <span class="fu">knn2nb</span>(<span class="fu">knearneigh</span>(centroids, <span class="dv">3</span>))</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>mpsz_nb</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>$by_contiguity
+Neighbour list object:
+Number of regions: 313 
+Number of nonzero links: 1902 
+Percentage nonzero weights: 1.94143 
+Average number of links: 6.076677 
+
+$by_distance
+Neighbour list object:
+Number of regions: 313 
+Number of nonzero links: 15422 
+Percentage nonzero weights: 15.74171 
+Average number of links: 49.27157 
+1 region with no links:
+313
+2 disjoint connected subgraphs
+
+$by_knn
+Neighbour list object:
+Number of regions: 313 
+Number of nonzero links: 939 
+Percentage nonzero weights: 0.9584665 
+Average number of links: 3 
+Non-symmetric neighbours list</code></pre>
 </div>
-<ul>
-<li>if run correctly, Zeng Hua Secondary School is the missing school</li>
-<li>We save as CSV to do “backdoor” manual edit
-<ul>
-<li>manually google for lat/long, add in decimal degree (1.389279, 103.7651)</li>
-<li>can build crawler instead to do this programmatically</li>
-</ul></li>
-</ul>
+</div>
 <ul>
 <li><p>import schoolcs.scv</p></li>
 <li><p>rename cols to LATITUDE LONGITUE</p></li>
@@ -358,7 +455,7 @@ Loading required namespace: spflow
 <div class="cell">
 <details>
 <summary>show code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <ul>
@@ -376,7 +473,7 @@ Loading required namespace: spflow
 <div class="cell">
 <details>
 <summary>show code</summary>
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <ul>
@@ -385,7 +482,7 @@ Loading required namespace: spflow
 <div class="cell">
 <details>
 <summary>show code</summary>
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <ul>
@@ -414,9 +511,9 @@ Loading required namespace: spflow
 <div class="cell">
 <details>
 <summary>show code</summary>
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(tmap, sf, DT, stplanr,</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>               performance,</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>               ggpubr, tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(tmap, sf, DT, stplanr,</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>               performance,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>               ggpubr, tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <ul>
@@ -425,10 +522,10 @@ Loading required namespace: spflow
 <div class="cell">
 <details>
 <summary>show code</summary>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>flow_data <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data/rds/flow_data_tidy.rds"</span>)</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># note that RETAIL_COUNT is mislabelled, should really be BUSINESS_COUNT</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(flow_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>flow_data <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data/rds/flow_data_tidy.rds"</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># note that RETAIL_COUNT is mislabelled, should really be BUSINESS_COUNT</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(flow_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <ul>
@@ -485,17 +582,17 @@ Loading required namespace: spflow
 <div class="cell">
 <details>
 <summary>show code</summary>
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>CalcRSquared <span class="ot">&lt;-</span> <span class="cf">function</span>(observed, estimated){</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  r <span class="ot">&lt;-</span> <span class="fu">cor</span>(observed, estimated)</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  R2 <span class="ot">&lt;-</span> r<span class="sc">^</span><span class="dv">2</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  R2</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># CalcRSquared( $trips, $fitted.values)</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># performance_rmse(orcSIM_Poisson, normalized = False)</span></span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co"># get raw RMSE instead of normalised value </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>CalcRSquared <span class="ot">&lt;-</span> <span class="cf">function</span>(observed, estimated){</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  r <span class="ot">&lt;-</span> <span class="fu">cor</span>(observed, estimated)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  R2 <span class="ot">&lt;-</span> r<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  R2</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co"># CalcRSquared( $trips, $fitted.values)</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="co"># performance_rmse(orcSIM_Poisson, normalized = False)</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co"># get raw RMSE instead of normalised value </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <ul>
