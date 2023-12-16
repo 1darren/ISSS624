@@ -774,7 +774,7 @@ tm_shape(dest_hexagon_sf) +
 #| code-fold: true
 #| code-summary: "show code"
 
-hexagon_sf <- subset(hexagon_sf, grid_id != 1) # run without this line for 2172 hexagons
+# hexagon_sf <- subset(hexagon_sf, grid_id != 1) # run without this line for 2172 hexagons
 hexagon_sp <- as(hexagon_sf, "Spatial")
 distance_matrix <- spDists(hexagon_sp, 
                 longlat = FALSE)
@@ -1407,12 +1407,12 @@ SIM_data[which(! complete.cases(SIM_data)), ]
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
-# CalcRSquared <- function(observed,estimated){
-#   r <- cor(observed,estimated)
-#   R2 <- r^2
-#   R2
-# }
-# CalcRSquared(uncSIM$data$SUM_TRIPS, uncSIM$fitted.values)
+CalcRSquared <- function(observed,estimated){
+  r <- cor(observed,estimated)
+  R2 <- r^2
+  R2
+}
+CalcRSquared(uncSIM$data$SUM_TRIPS, uncSIM$fitted.values)
 # 185274
 # 185252 - 22
 ```

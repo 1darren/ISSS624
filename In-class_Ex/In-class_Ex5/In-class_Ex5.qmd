@@ -318,20 +318,40 @@ colnames(cor_mat) <- paste0(
 cor_image(cor_mat) # use corr_plot package
 ```
 
-- trick: plot base map of polygon map, before plotting dot map
-    - this will place points, lines over polygn
-- use `tmap_options(check.and.fix = True)` to close/reunite polygon
-    - eg geometry not closed, from busstop
-    
-- business, school location are attractiveness, AT DESTINATOIN
-    - trick: left join destin_sz = subzone c
-    - if join on origin, will be propulsive
-    
-    
-- for Poisson regression, we need to check for 0, coerce to 0.99
-    - just a small number below 1
 
+- Now use spflow to calibrate 9 models 
+  - based on 3 statistical algorithms;
+    - maximum likelihood estimation, mle
+    - spatial two-stage lesat-squares s2sls
+    - Bayesian Markov Chain Monte carlo MCMC
+  - default "estimation_method="mle""
 
+- note the use of `O_()`, `D_()` and `P_()` to denote and mark origin/destination/impedance variables
+  - "DISTANCE + 1" to avoid 0-values for intrazonal flow distance == 0 
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+base_model <- spflow(
+  spflow_formula = log(1+TRIPS) ~
+    O_(BUSSTOP_COUNT +
+         AGE25_64) + 
+    D_(SCHOOL_COUNT +
+         BUSINESS_COUNT +
+         RETAILS_COUNT +
+         FINSERV_COUNT) +
+    P_(log(DISTANCE +1)),
+  spflow_networks = mpsz_multi_net
+)
+base_model
+```
+
+- note use of model9 by default
+- note `D_SCHOOL_COUNT` is statistically significant, but `...lag1` is not;
+  schools affect the subzone they are in but not the neighbour subzone
+  - similarly, RETAILS_COUNT nor does not affect subzone
+  - however, FINSERV and lag1 do affect subzone
+    
 # IN-Class ex 4 
 
 
@@ -343,82 +363,3 @@ pacman::p_load(tmap, sf, DT, stplanr,
                performance,
                ggpubr, tidyverse)
 ```
-
--
-```{r}
-#| eval: false
-#| code-fold: true
-#| code-summary: "show code"
-flow_data <- read_rds("data/rds/flow_data_tidy.rds")
-
-# note that RETAIL_COUNT is mislabelled, should really be BUSINESS_COUNT
-glimpse(flow_data)
-```
-
-- steps: remove intrazonal trips
-    - by definition, all attractiveness/propulsiveness within the zone is the same; not useful
-    - we want to understand what makes people travel between zones
-    
-    
-- write to RDS after data cleaning, to avoid re-running when fitting SIM model
-    - also, clear environment of objects, to avoid storage
-    - for rigour, clear cache regularly 
-    
-    
-- 4 models under gravity
-    - unconstrained
-    - origin-constrained  : only have attractiveness factors (eg school, retail)
-    - destination-constrained
-    - doubly constrained
-- previously, population: not valuable 
-- distance still retained, as impedance;
-- for origin/destination constrained, you don't need intercept -- so, he has formula = ... -1
-    - na.action = na.exclude: failsafe drop NA 
-    
-- what we're looking at is log(SCHOOL_COUNT), log(RETAIL_COUNT), log(DIST)
-    - ideally, low signif codes => significant factors
-    - we also want to interpret the parameters correctly
-        - log(DIST) should be negative -> by right, always inverse distance
-        - attractiveness params should be positive, propulsiveness should be negative
-        - contrast: CRIME RATE should be negative (we want lower crime rate)
-        
-        
-- GLM does not provide r-squared
-- we define a function, `CalcRSquared` to calculate R^2 for goodness of fit
-    - base R has correlation function `cor()`
-    - we square -- positive/negative correlation is possible
-    
-- output of GLM, `orcSIM_Poisson`, is a model object / list of 30 objects
-    - some objects are:
-        - `coefficients` for column/variables
-        - `residuals`` errors for each interzonal flow <- can be joined to inter_zonal flow
-        - `fitted.values` expected_Y based on model
-        
-- can be extracted using as_dataframe() with `orcSIM_Poisson$residuals`
-
-```{r}
-#| eval: false
-#| code-fold: true
-#| code-summary: "show code"
-CalcRSquared <- function(observed, estimated){
-  r <- cor(observed, estimated)
-  R2 <- r^2
-  R2
-}
-
-# CalcRSquared( $trips, $fitted.values)
-
-
-# performance_rmse(orcSIM_Poisson, normalized = False)
-# get raw RMSE instead of normalised value 
-```
-
-- for doubly-constrained, "don't need to worry about intercept" don't need to -1
-- use chap16#model-compariosn 
-    - lowest RMSE si morebest
-- multiplot if RMSE is large, scatter is larger
-    - may want to drop that one massive outlier   
-
-
-
-
