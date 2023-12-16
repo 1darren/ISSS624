@@ -143,47 +143,86 @@ write_rds(mpsz_nb, "data/rds/mpsz_nb.rds")
 
 
 
-- import schoolcs.scv
+- import odbus6_9
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
+odbus6_9 <- read_rds("data/rds/odbus6_9.rds")
 
+busstop_mpsz <- st_intersection(busstop, mpsz) %>% 
+  select(BUS_STOP_N, SUBZONE_C) %>%
+  st_drop_geometry
+
+busstop_mpsz
 ```
 
--   `rds` saves the R object, preserving the classes;
-
-    -   `mpsz` was `sf` `tibble` dataframe in Hands-on Ex03; here it is reproduced in the same class from previously loaded
-
-    -   If we instead exported as shapefile, many details will be lost
-
-    -   Alternatively, we could perform st_read from previous
+- check duplicates
+  - when replacing ODflow with busstop:subzone data, there are duplicates
+  - duplicates will repeat
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
 
-#| eval: false
+# 
+# section breezed by too fast
+# od_data <- left_join ...
+# 
 
+# code block to remove duplicates
+# duplicate <- od_data %>%
+#   group_by_all() %>%
+#   filter(n()>1), %>%
+#   ungroup() 
+
+
+# code chunk: read from od_data.rds
+od_data <- read_rds("data/rds/od_data.rds")
+```
+
+## Create distnance matrix
+
+-   turn `mpsz` into sp object, create flowdata, distpair, etc etc 
+- after many steps, saved as mpsz_flow.rds
+- note that we don't need to filter out intrazonal flow;
+
+
+- recap:
+  - mpsz_nb     : weight matrix
+    - list of 3 weight matrices, by contiguity/distance/knn
+  - mpsz_flow   : od flow data
+    - origin sz / destin sz / distance / trips
+    - important to convert grid_id to character or destination field
+    - if distance == 0, intrazonal flow
+  - mpsz_var    : explanatory variables 
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+mpsz_nb <- read_rds("data/rds/mpsz_nb.rds")
+mpsz_flow <- read_rds("data/rds/mpsz_flow.rds")
+mpsz_var <- read_rds("data/rds/mpsz_var.rds")
 ```
 
 
-- Point-in-polygon count
-    - polygon & points should be in same projection, e.g. 3414
-- Why use `st_intersects()` over `st_within()`?
-    - can also; but intersection has same output 
-    - use of `lengths()` to count number of schools within mpsz
-    
-    
-- `business` dataset : SME businesses
+## Create `spflow_network-class` objects:
+- combines nb-weight matrix with flow data;
+- we use **contiguity**
+  - instead of by fixed distance, with one orphan
 
 
 ```{r}
 #| code-fold: true
 #| code-summary: "show code"
 
-#| eval: false
-
+mpsz_net <- spflow_network(
+  id_net = "sg",
+  node_neighborhood = nb2mat(mpsz_nb$by_contiguity),
+  node_data = mpsz_var,
+  node_key_column = "SZ_CODE")
+mpsz_net
 ```
 
 
