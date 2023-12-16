@@ -127,13 +127,23 @@ mpsz_nb
 - note that `$by_contiguity` has no orphans;
 - note that `$by_distance` has one region, 313, with no neighbours;
 
+(code for plot: ran by too fast)
+- once written, use `#| eval: false` to deactivate other code chunks to prevent run 
+
+
+
+- important to show one specific area to see neighbour-matrix relations, use zoom
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+#| eval: false
+write_rds(mpsz_nb, "data/rds/mpsz_nb.rds")
+```
+
+
+
 
 - import schoolcs.scv
-- rename cols to LATITUDE LONGITUE
-- retian only potla_code, school_name, lat, long
-
-- when feeding arguments, always specify LONGITUDE then LATITUDE because of cartesian coordinates convention (x, y) 
-- specify initial coords of initial untransformed data (WGS84, crs4326)
 
 ```{r}
 #| code-fold: true
