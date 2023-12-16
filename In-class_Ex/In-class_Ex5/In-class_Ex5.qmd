@@ -351,15 +351,64 @@ base_model
   schools affect the subzone they are in but not the neighbour subzone
   - similarly, RETAILS_COUNT nor does not affect subzone
   - however, FINSERV and lag1 do affect subzone
-    
-# IN-Class ex 4 
+
+- plot moran
 
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
-pacman::p_load(tmap, sf, DT, stplanr,
-               performance,
-               ggpubr, tidyverse)
+old_par <- par(mfrow = c(1, 3),
+               mar = c(2,2,2,2))
+spflow_moran_plots(base_model)
+par(old_par)
 ```
+
+- reperform pair plot;
+  - this time, we just feed in model, don't need to rewrite equation
+- now we want to observe the residuals of d, o, w
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+corr_residual <- pair_cor(base_model)
+colnames(corr_residual) <- substr(colnames(corr_residual), 1, 3)
+cor_image(corr_residual)
+```
+
+- Alternative code control;
+  - state spflow_formula and model_control separately
+  - assemble using sp_flow
+- lag for school is statistically signiicant 
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+spflow_formula <- log(1+TRIPS) ~
+    O_(BUSSTOP_COUNT +
+         AGE25_64) + 
+    D_(SCHOOL_COUNT +
+         BUSINESS_COUNT +
+         RETAILS_COUNT +
+         FINSERV_COUNT) +
+    P_(log(DISTANCE +1))
+
+model_control <- spflow_control(
+  estimation_method = "mle", 
+  model = "model_1")
+
+mle_model1 <- spflow(
+  spflow_formula,
+  spflow_networks = mpsz_multi_net,
+  estimation_control = model_control
+)
+
+mle_model1
+```
+
+
+- to create alternative model, simply change model_control(model=) name 
+  - eg changed to model_2, focuses on destination 
+- unconstrainted performs poorest, ori/desti constrained performs better
+
+- 8: restricted, filtered, takes into account intrazonal flows
+- 9: unrestricted
