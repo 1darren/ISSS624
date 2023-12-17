@@ -53,17 +53,33 @@ For easier reading, this study is also presented in point-form.
 
     -   As explanatory variables: Details such as the location of businesses, F&B outlets, and retail areas.
 
-+------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
-| Filename, Purpose & Source:                                                                                            | Key columns                                                                      |
-+========================================================================================================================+==================================================================================+
-| `hdb.csv` : HDB Property information data with geocoding                                                               | -   `lat`, `long`: coordinates \|                                                |
-|                                                                                                                        | -   `max_floors`, `total_dwelling_units` : idea of how many units each HDB holds |
-| *Via [data.gov](https://beta.data.gov.sg/collections/150/view)*                                                        |                                                                                  |
-+------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
-| `origin_destination_bus_202310` : Volume of bus passenger trips, by origin/destination, data prepared for 2023 October | -   `ORIGIN_PT_code`, `DESTINATION_PT_code`: O/D information on bus trip         |
-|                                                                                                                        | -   `TIME_PER_HOUR`, `DAY_TYPE`: Time/Date data on when the trips were taken     |
-| *Via [LTA DataMall](https://datamall.lta.gov.sg/content/datamall/en.html)*                                             | -   `TOTAL_TRIPS`: Bus trip passenger volume                                     |
-+------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
++-----------------------------------+----------------------------------------------------------------------------------+
+| Filename:                         | Purpose                                                                          |
++===================================+==================================================================================+
+| `MPSZ-2019` Shapefile             | To provide geographical context for analytical hexagons                          |
++-----------------------------------+----------------------------------------------------------------------------------+
+| `BusStop` Shapefile               | To identify location of Bus Stops by bus stop number                             |
++-----------------------------------+----------------------------------------------------------------------------------+
+| Shapefiles provided by Prof Kam:  | To provide estimation of density/number for use in spatial interaction modelling |
+|                                   |                                                                                  |
+| -   `Business`                    |                                                                                  |
+|                                   |                                                                                  |
+| -   `entertn`                     |                                                                                  |
+|                                   |                                                                                  |
+| -   `F&B`                         |                                                                                  |
+|                                   |                                                                                  |
+| -   `FinServ`                     |                                                                                  |
+|                                   |                                                                                  |
+| -   `Liesure&Recreation`          |                                                                                  |
+|                                   |                                                                                  |
+| -   `Retails`                     |                                                                                  |
++-----------------------------------+----------------------------------------------------------------------------------+
+| MRT Shapefiles, via LTA Datamall: | For analysis of MRT stations / MRT station exits in relation to bus flow traffic |
+|                                   |                                                                                  |
+| -   `RapidTransitSystemStation`   |                                                                                  |
+|                                   |                                                                                  |
+| -   `Train_Station_Exit_Layer`    |                                                                                  |
++-----------------------------------+----------------------------------------------------------------------------------+
 
 : Table 2: Geospatial Datasets used. \|
 
@@ -106,7 +122,6 @@ pacman::p_load(tmap, sf, sfdep, tidyverse, DT, leaflet, stplanr, sp, reshape2, w
     -   We use `head()` to preview the first 6 rows
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 raw_bus_stop_sf <- st_read(dsn = "data/geospatial", 
@@ -121,7 +136,6 @@ head(raw_bus_stop_sf)
 ## EXPAND To See: Full `st_crs`Readout
 
 ```{r}
-#| eval: false
 #| code-fold: true 
 #| code-summary: "show code"  
 st_crs(raw_bus_stop_sf)
@@ -131,7 +145,6 @@ st_crs(raw_bus_stop_sf)
 -   We use `qtm()` to perform a quick visualization of the various bus stops:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -153,7 +166,6 @@ However, this is hard to visualize without the context of boundaries and details
     -   We use `st_crs()` to check the Coordinate Reference System (CRS);
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -166,7 +178,6 @@ st_crs(mpsz_sf)
 -   Thus, we use `st_transform()` to reproject the data to SVY21/EPSG 3414 Coordinate Reference System (CRS) to ensure consistent distance calculation:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -181,7 +192,6 @@ st_crs(mpsz_sf)
     -   On top of which, we layer `tm_shape() + tm_dots()` to show the bus stops.
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 tmap_mode("plot")
@@ -199,7 +209,6 @@ tm_shape(mpsz_sf) +
     -   to check what bus stops have been dropped, we use `anti_join()` to compare `raw_bus_stop_sf` with `sg_bus_stop_sf`. We use `st_drop_geometry` on both `sf` dataframes to only compare the non-geometry columns.
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 sg_bus_stop_sf <- st_filter(raw_bus_stop_sf, mpsz_sf)
@@ -219,7 +228,6 @@ anti_join(st_drop_geometry(raw_bus_stop_sf), st_drop_geometry(sg_bus_stop_sf))
 -   And, indeed, we find there are 16 bus stops that are repeated;
 
 ```{r}
-#| eval: false
 cat("\nResults before removing duplicates: \n=======================================================\n")
 cat("Total number of rows in sg_bus_stop_sf\t\t: ", paste0(length(sg_bus_stop_sf$BUS_STOP_N)))
 cat("\nTotal unique bus stop IDs in sg_bus_stop_sf\t: ", paste0(length(unique(sg_bus_stop_sf$BUS_STOP_N))))
@@ -234,7 +242,6 @@ cat("\nRepeated bus stops\t\t\t\t:   ", paste0(length(sg_bus_stop_sf$BUS_STOP_N)
     -   We then assign the output using `<-` into `bus_stop_sf`, for use.
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 bus_stop_sf <- sg_bus_stop_sf[!duplicated(sg_bus_stop_sf$BUS_STOP_N), ]
@@ -252,7 +259,6 @@ cat("\nRepeated bus stops\t\t\t\t:   ", paste0(length(bus_stop_sf$BUS_STOP_N) - 
     -   We combine `tm_shape()` and `tm_dots()` to map locations of bus stops; for visual distinction with the grey zones, we use the "Spectral" palette
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 tmap_mode("view")
@@ -285,7 +291,6 @@ tmap_mode("plot")
     -   We use `tmap_shape()` and `tm_dots()` to visualize our bus stop as black dots
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -322,7 +327,6 @@ tmap_mode("plot")
 -   We re-use a bit of code from Take-Home Exercise 1 to plot our analytical hexagons on a map of Singapore and visualize the number of bus stops in each hexagon:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 tmap_mode("view")
@@ -558,7 +562,6 @@ write_rds(od_data, "data/rds/od_data.rds")
 -   From previous, we load `od_data`:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -572,7 +575,6 @@ hexagon_sf <- read_rds("data/rds/hexagon_sf.rds")
 -   We use `summary()` to take a quick peek at the resultant interzonal flow dataset:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -589,7 +591,6 @@ summary(od_flow_data$SUM_TRIPS)
 -   This is where we use the `patchwork` package, as it allows us to position the subplots without writing too much syntax. This is the beauty of R packages, indeed.
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -625,7 +626,6 @@ lplot / (rplot1 + rplot2)
 -   Now, we convert the flow data to `SpatialLinesDataFrame` from `stplanr`
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 flowLine <- od2line(flow = od_flow_data, 
@@ -650,7 +650,6 @@ flowLine
     -   We define custom breaks and use both "`palette`" and "`scale`" arguments to add colour and thickness to flow lines for visual scale
 
 ```{r}
-#| eval: false
 custom_palette <- c('#dec060','#d73027','#72001a', '#313695')
 tmap_mode("view")
 tm_basemap(providers$OneMapSG.Grey) +
@@ -689,7 +688,6 @@ tmap_mode("plot")
     -   We use `geom_point()` and `position_jitter()` to layer a scatterplot on top to visualize the distribution better
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -721,7 +719,6 @@ ggplot(od_flow_data_origin, aes(x = ORIGIN_HEX, y = SUM_ORIG_TRIPS)) +
     -   `TOP_TRIPS`, showing the traffic flows above 10,000 trips from `flowLine` earlier:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -795,7 +792,6 @@ tm_ori_hex %>%
 -   We follow similar steps to Section 2.2 to create the corresponding map by `$DESTIN_HEX`
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 od_flow_data_destin <- od_flow_data %>%
@@ -875,7 +871,6 @@ tm_des_hex %>%
 -   We perform our `leaflet` trick one last time, overlapping `ORI_HEX` and `DES_HEX` from the last 2 maps to compare the top hexes by origin/destination:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 tmap_mode("plot")
@@ -917,7 +912,6 @@ tm_ori_des %>%
 -   The output `distance_matrix` is an 831x831 matrix (as we have 831 unique hexagons), so we preview only the first 10 rows and columns using `head()`
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 hexagon_sf <- read_rds("data/rds/hexagon_sf.rds")
@@ -937,7 +931,6 @@ head(distance_matrix, n=c(10, 10))
     -   We use `rename()` to name our column headers
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 distPair <- melt(distance_matrix) %>%
@@ -950,7 +943,6 @@ head(distPair, 10)
 -   Note that we have intra-zonal distances/zero-distances, which may cause issues later. Let's check the minimum distances:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 distPair %>%
@@ -962,7 +954,6 @@ distPair %>%
 -   To avoid issues with zero-value distances below, we will arbritrarily convert intrazonal distance to 50m. However, we note that having removed intrazonal flows, we should not encounter this error later on.
 
 ```{r}
-#| eval: false
 distPair$dist <- ifelse(distPair$dist == 0,
                         50, distPair$dist)
 distPair %>%
@@ -984,7 +975,6 @@ write_rds(distPair, "data/rds/distPair.rds")
 -   Finally, we perform a quick glimpse using `$od_no_intra` to view that our filter for intrazonal flows is correct:
 
 ```{r}
-#| eval: false
 
 
 od_data$od_no_intra <- ifelse(
@@ -1007,7 +997,6 @@ od_data_distpair[od_data_distpair$od_no_intra == 0, ]
 -   Now, we create `inter_zonal_flow` by filtering out the intrazonal flows we have seen, and perform a quick histogram visualization usingggplot:
 
 ```{r}
-#| eval: false
 inter_zonal_flow <- od_data_distpair %>%
   filter(od_no_intra > 0) %>%
   select(ORIGIN_HEX, DESTIN_HEX, SUM_TRIPS, dist)
@@ -1045,142 +1034,6 @@ write_rds(inter_zonal_flow, "data/rds/inter_zonal_flow.rds")
 summary(inter_zonal_flow)
 ```
 
-## 3.3 Prepare Intrazonal OD flow data
-
--   unconstrained
-
-```{r}
-#| eval: false
-# uncSIM <- glm(formula = SUM_TRIPS ~ 
-#                 log(dist),
-#               family = poisson(link = "log"),
-#               data = od_data_distpair,
-#               na.action = na.exclude)
-# uncSIM
-
-```
-
-### 1.6.2 Identify Bus Trip Details For Each Hexagon `grid_id`
-
--   Here, we again use multiple steps to generate bus trip details for each hexagon `grid_id`;
-    1.  We use `left_join()` to add the `grid_id` to each row of `odbus_filtered`, since each row has a unique single bus stop ID (i.e. `$BUS_STOP_N`);
-    2.  We use `select()` to retain only the `grid_id` and the four peak-trips columns;
-    3.  We combine `group_by()` and `summarise()` to aggregate the trips for each peak by `grid_id`.
--   Finally, we use `head()` to preview the `grid_trips_df` tibble dataframe.
-
-```{r}
-#| eval: false
-#| code-fold: true
-#| code-summary: "show code"
-# colnames(odbus_filtered)
-# 
-# grid_trips_df <- left_join(odbus_filtered, bus_stop_hexgrid_id, 
-#             by = c("ORIGIN_PT_CODE" = "BUS_STOP_N")) %>%
-#   select(grid_id, 
-#          TRIPS)  %>%
-#   group_by(grid_id) %>%
-#   summarise(
-#     TRIPS = sum(TRIPS)
-#     )
-# head(grid_trips_df)
-```
-
-### 1.6.3 Combine Bus Trip Details Back Into `hexagon_sf`
-
--   Finally, it's time to recombine bus trip data back into `hexagon_sf`;
-    -   We use `left_join` on `$grid_id` to add trip data back into hexagon_sf;
-    -   We add a failsafe `mutate()` to replace any "NA" values for the columns.
-
-```{r}
-#| eval: false
-#| code-fold: true
-#| code-summary: "show code"
-# hexagon_sf <- left_join(hexagon_sf, grid_trips_df, 
-#             by = 'grid_id' ) %>%
-#   mutate(
-#     TRIPS = ifelse(is.na(TRIPS), 0, TRIPS)
-#     )
-# 
-# head(hexagon_sf)
-
-```
-
-## 1.7 Exploratory Data Analysis Of Bus Trips, Across Peak Periods, By Hexagons
-
--   For `ggplot`, we need data in long format, so we can use `gather()` on `grid_trips_df` from Section 1.6.2 to pivot this;
--   We then pipe this into a `geom_boxplot()` for an exploratory look:
-
-```{r}
-#| eval: false
-#| code-fold: true
-#| code-summary: "show code"
-
-# 
-# custom_breaks <- c(seq(0, 50000, by = 5000), 565000)
-# 
-# lplot <- ggplot(data = hexagon_sf, aes(x=TRIPS, y=grid_id)) +
-#   geom_point()  +
-#   labs(title = "Histogram with Different Fill Colors",
-#        x = "Value",
-#        y = "Frequency") + 
-#   geom_vline(xintercept = 20000, colour="red")
-# rplot <- ggplot(data = hexagon_sf[hexagon_sf$TRIPS <50001, ]
-#                 , aes(x=TRIPS)) +
-# geom_histogram() + #breaks=seq(0, 50000, by = 5000) 
-#   geom_vline(xintercept = 20000, colour="red")
-# 
-# lplot / rplot
-# 
-# # str(hexagon_sf$TRIPS)
-# 
-# 
-# # gather(grid_trips_df, key = "Peak", value = "Trips", -grid_id) %>%
-# #   ggplot( aes(x=grid_id, y='TRIPS', fill=grid_id)) +
-# #   geom_boxplot() + 
-# #   ggtitle("Boxplot: Trips over peak periods, 2023-Oct data") +
-# #     xlab("") + 
-# #     theme(
-# #       legend.position="none"
-# #       ) +
-# #   coord_flip()
-```
-
-::: callout-tip
-We also observe that number of trips for Weekday Morning & Weekday Afternoon seems to be larger than Weekend Morning and Weekend Evening peak trips. This is also confirmed by the figure in the next section.
-
-This means that we will have to consider Weekday and Weekend peaks on different scales.
-:::
-
--   This is an exceptionally ugly plot, but it shows an important point: there is some serious right skew in our dataset;
--   Clearly, there are some hexagons with exceptionally high trips compared to the rest of the hexagons But, could this be because some hexagons have up to 11 bus stops, while others have 1 or 2?
--   We do a quick scatter plot based on `$n_bus_stops` to verify this:
-
-```{r}
-#| eval: false
-#| code-fold: true
-#| code-summary: "show code"
-# hexagon_sf %>% 
-#   st_drop_geometry() %>% 
-#   pivot_longer(cols = starts_with("WEEK"),
-#                names_to = "PEAK", values_to = "TRIPS") %>%
-#   ggplot( aes(x=TRIPS, y=n_bus_stops, color=PEAK, shape=PEAK)) +
-#   geom_point(size=2) +
-#   ggtitle("Scatterplot: Trips over peak periods by number of bus stops per hexagon, 2023-Oct data") +
-#     theme(legend.position=c(.85, .15),
-#           legend.background = element_rect(fill = "transparent"),
-#           legend.key.size = unit(0.5, "cm"),  
-#           legend.text = element_text(size = 6),
-#           legend.title = element_text(size = 8)
-#     ) 
-```
-
--   Surprising results from our plot! If we consider those with \> 100,000 trips as outliers, most of them come from hexagons with between 4-8 bus stops;
--   There is some correlation between number of bus stops and high numbers of trips, but a stronger factor is peak time; Weekday Morning peak trips, followed by Weekday Afternoon peak trips, contribute to the largest outliers.
-
-::: callout-tip
-I note that these visualizations only scrape the surface of understanding the data. However, this is not the focus of our study; we do these quick visualizations only to provide better context for our study.
-:::
-
 ## 3.4 Preparing three propulsive and three attractiveness variables
 
 ::: callout-important
@@ -1189,27 +1042,27 @@ I note that these visualizations only scrape the surface of understanding the da
 
 -   Over the next few sections, we will assemble the following explanatory variables for our spatial interaction model. We also note which section they will be handled in (if not stated, they will be addressed in Section 3.4A):
 
--   Propulsive variables: 
+-   Propulsive variables:
+
     -   *business_count*, *finserv_count*: We assume in the weekday evenings, people will be leaving their offices or have concluded their businesses from financial services, which are often also closed in the evenings.
     -   *MRT_EXIT_COUNT*: (Section 3.4C) Based on above Map 2 (Section 2.2, 2.3) we see that most trips appear to originate from MRT stations. In all likelihood, MRT Stations can be both propulsive and attractive, but we choose to class it here, explaining as people using MRTs to transit to the desired leisure are.
 
 -   Attractive variables:
-    -   *leisure_count*, *fnb_count*, *retail_count*, *entertainment_count*: Using data from Prof Kam, we assume people will leave their workplace to seek out food, entertainment, leisure, or retail shops. 
-    -   *hdb_count* (Section 3.4B) Alternatively, people may be heading home after work. 
-    
+
+    -   *leisure_count*, *fnb_count*, *retail_count*, *entertainment_count*: Using data from Prof Kam, we assume people will leave their workplace to seek out food, entertainment, leisure, or retail shops.
+    -   *hdb_count* (Section 3.4B) Alternatively, people may be heading home after work.
+
 ### 3.4A Assembling Various Explanatory Variables
 
-- Many of the below geospatial datasets have been prepared by Prof Kam, so the data is already cleaned, and the steps are largely uniform;
-  1. Use `st_read()` to read in the geospatial dataset, and use `st_transform()` to ensure it uses SVY21/CRS3414
-  2. Create a new column using `lengths(st_intersects())` to count the number of such points in each hexagon grid.
-- Here are the data preparation steps:
+-   Many of the below geospatial datasets have been prepared by Prof Kam, so the data is already cleaned, and the steps are largely uniform;
+    1.  Use `st_read()` to read in the geospatial dataset, and use `st_transform()` to ensure it uses SVY21/CRS3414
+    2.  Create a new column using `lengths(st_intersects())` to count the number of such points in each hexagon grid.
+-   Here are the data preparation steps:
 
 ::: panel-tabset
-
 ## Business
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -1224,10 +1077,10 @@ hexagon_sf$`BUSINESS_COUNT`<- lengths(
 summary(hexagon_sf$BUSINESS_COUNT)
 
 ```
-- Quick Visualization:
+
+-   Quick Visualization:
 
 ```{r}
-#| eval: false
 tmap_mode("plot")
 tm_shape(mpsz_sf) + tm_polygons() +
  tm_shape(hexagon_sf) +
@@ -1240,7 +1093,6 @@ tm_shape(mpsz_sf) + tm_polygons() +
 ## Entertainment
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 entertn_sf <- st_read(dsn = "data/geospatial",
@@ -1253,10 +1105,10 @@ hexagon_sf$`ENTERTAIN_COUNT`<- lengths(
     hexagon_sf, entertn_sf))
 summary(hexagon_sf$ENTERTAIN_COUNT)
 ```
-- Quick Visualization:
+
+-   Quick Visualization:
 
 ```{r}
-#| eval: false
 tmap_mode("plot")
 tm_shape(mpsz_sf) + tm_polygons() +
  tm_shape(hexagon_sf) +
@@ -1269,7 +1121,6 @@ tm_shape(mpsz_sf) + tm_polygons() +
 ## Finserv
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 finserv_sf <- st_read(dsn = "data/geospatial",
@@ -1283,10 +1134,10 @@ hexagon_sf$`FINSERV_COUNT`<- lengths(
     hexagon_sf, finserv_sf))
 summary(hexagon_sf$FINSERV_COUNT)
 ```
-- Quick Visualization:
+
+-   Quick Visualization:
 
 ```{r}
-#| eval: false
 tmap_mode("plot")
 tm_shape(mpsz_sf) + tm_polygons() +
  tm_shape(hexagon_sf) +
@@ -1299,7 +1150,6 @@ tm_shape(mpsz_sf) + tm_polygons() +
 ## FNB
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 fnb_sf <- st_read(dsn = "data/geospatial",
@@ -1313,10 +1163,9 @@ hexagon_sf$`FNB_COUNT`<- lengths(
 summary(hexagon_sf$FNB_COUNT)
 ```
 
-- Quick Visualization:
+-   Quick Visualization:
 
 ```{r}
-#| eval: false
 tmap_mode("plot")
 tm_shape(mpsz_sf) + tm_polygons() +
  tm_shape(hexagon_sf) +
@@ -1329,7 +1178,6 @@ tm_shape(mpsz_sf) + tm_polygons() +
 ## Leisure
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 leisure_sf <- st_read(dsn = "data/geospatial",
@@ -1343,10 +1191,10 @@ hexagon_sf$`LEISURE_COUNT`<- lengths(
     hexagon_sf, leisure_sf))
 summary(hexagon_sf$LEISURE_COUNT)
 ```
-- Quick Visualization:
+
+-   Quick Visualization:
 
 ```{r}
-#| eval: false
 tmap_mode("plot")
 tm_shape(mpsz_sf) + tm_polygons() +
  tm_shape(hexagon_sf) +
@@ -1356,11 +1204,9 @@ tm_shape(mpsz_sf) + tm_polygons() +
          style = "jenks") 
 ```
 
-
 ## Retail
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 retail_sf <- st_read(dsn = "data/geospatial",
@@ -1375,10 +1221,9 @@ hexagon_sf$`RETAIL_COUNT`<- lengths(
 summary(hexagon_sf$RETAIL_COUNT)
 ```
 
-- Quick Visualization:
+-   Quick Visualization:
 
 ```{r}
-#| eval: false
 tmap_mode("plot")
 tm_shape(mpsz_sf) + tm_polygons() +
  tm_shape(hexagon_sf) +
@@ -1387,10 +1232,9 @@ tm_shape(mpsz_sf) + tm_polygons() +
          palette = "Oranges",
          style = "jenks") 
 ```
-
 :::
 
-- Originally, I had prepared a `leaflet` plot with multiple layers that combined all six preceding plots that you could thumb through. However, R/Quarto took too long to render and often crashed, so below is the code snippet to render the plot for your gratification, if you so enjoy.
+-   Originally, I had prepared a `leaflet` plot with multiple layers that combined all six preceding plots that you could thumb through. However, R/Quarto took too long to render and often crashed, so below is the code snippet to render the plot for your gratification, if you so enjoy.
 
 ```{r}
 #| eval: false
@@ -1453,14 +1297,12 @@ tm_shape(mpsz_sf) + tm_polygons() +
 #   )
 ```
 
-
-
 ## 3.4B MRT Exit Data
-- Here, we have a choice whether to use the geospatial dataset of MRT Train Station Exits data or the dataset of actual MRT Train Station Locations from LTA DataMall.
-- Loading Train Station Exit Data is relatively straightfoward:
+
+-   Here, we have a choice whether to use the geospatial dataset of MRT Train Station Exits data or the dataset of actual MRT Train Station Locations from LTA DataMall.
+-   Loading Train Station Exit Data is relatively straightfoward:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 mrt_exit_sf <- st_read(dsn = "data/geospatial",
@@ -1474,14 +1316,14 @@ hexagon_sf$`MRT_EXIT_COUNT`<- lengths(
     hexagon_sf, mrt_exit_sf))
 summary(hexagon_sf$MRT_EXIT_COUNT)
 ```
-- However, attempting to read from LTA's `RapidTransitSystemStation` fails somewhat;
-    -  There is incomplete or broken geometry in LTA's original source file
+
+-   However, attempting to read from LTA's `RapidTransitSystemStation` fails somewhat;
+    -   There is incomplete or broken geometry in LTA's original source file
     -   use st_make_valid() does not work, so I sourced wdpar::st_repair_geometry [`wdpar source`](https://search.r-project.org/CRAN/refmans/wdpar/html/st_repair_geometry.html), based on [`prepr`](https://github.com/dickoa/prepr) package to repair geometries
     -   thereafter we need to coerce from EPSG9001 to SVY21 using `st_transform()`
-- Even so, we can compare the difference in the two datasets:
+-   Even so, we can compare the difference in the two datasets:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 library(wdpar)
@@ -1503,21 +1345,23 @@ tm_shape(mrt_sf) +
   tm_dots(col='red')
 
 ```
-- We can see that the MRT Stations (red dots) appear largely to correspond with the MRT Exits (coloured, non-blue hexes.) We thus choose to use the MRT_EXIT_COUNT dataset, as it is a more logical interpretation of data flow 
+
+-   We can see that the MRT Stations (red dots) appear largely to correspond with the MRT Exits (coloured, non-blue hexes.) We thus choose to use the MRT_EXIT_COUNT dataset, as it is a more logical interpretation of data flow
 
 ## 3.4C HDB Dataset
 
-- We now draw from the "aspatial" HDB dataset, and use `colnames()` to examine the columns:
+-   We now draw from the "aspatial" HDB dataset, and use `colnames()` to examine the columns:
+
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 raw_hdb <- read_csv("data/aspatial/hdb.csv")
 colnames(raw_hdb)
 ```
-- For our purposes, we need to use `$lat` and `$lng` as geocordinates, and to filter by "`$residential` = Y"
+
+-   For our purposes, we need to use `$lat` and `$lng` as geocordinates, and to filter by "`$residential` = Y"
+
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 raw_hdb <- raw_hdb %>% 
@@ -1537,10 +1381,9 @@ hexagon_sf$`hdb_COUNT`<- lengths(
 summary(hexagon_sf$hdb_COUNT)
 ```
 
-- Now we perform a quick visualization:
+-   Now we perform a quick visualization:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 tmap_mode("plot")
@@ -1549,7 +1392,8 @@ tm_shape(mpsz_sf) +
 tm_shape(hexagon_sf) +
   tm_polygons(col = "hdb_COUNT", palette = "-Spectral")
 ```
-- Finally, let's write `hexagon_sf` to rds
+
+-   Finally, let's write `hexagon_sf` to rds
 
 ```{r}
 #| eval: false
@@ -1558,29 +1402,27 @@ tm_shape(hexagon_sf) +
 write_rds(hexagon_sf, "data/rds/hexagon_features.rds")
 ```
 
-
 # 4. Spatial Interactive Models
 
-- To distinguish our `hexagon_sf` with added variables from the previous `hexagon_sf` used above, we will load and call this one `hex_variables_sf`
-- We read this from rds first:
+-   To distinguish our `hexagon_sf` with added variables from the previous `hexagon_sf` used above, we will load and call this one `hex_variables_sf`
+-   We read this from rds first:
 
 ```{r}
-#| eval: false
 inter_zonal_flow <- read_rds("data/rds/inter_zonal_flow.rds")
 hex_variables_sf <- read_rds("data/rds/hexagon_features.rds")
 ```
 
 ### 4.1.P Propulsive Variables Count
-- Now, we will need to combine our flow data with the origin/destination hexagons as in `inter_zonal_flow`;
-  1. First, we create `prop_df`, an aspatial dataframe with only propulsiveness variables;
-      - We `select()` only the `$grid_id` identifier columns with counts for `$BUSINESS_COUNT`, `$FINSERV_COUNT` and `$MRT_EXIT_COUNT`,
-      - We use `st_drop_geometry()` to remove the geospatial data
-  2. Next, we `left_join()` this to our `inter_zonal_flow` dataset
-      - Since these are propulsive variables, we join this to the `$ORIGIN_HEX`
-      - For ease of reading later, we rename these columns by adding a prefix `P_` for propulsive variables:
+
+-   Now, we will need to combine our flow data with the origin/destination hexagons as in `inter_zonal_flow`;
+    1.  First, we create `prop_df`, an aspatial dataframe with only propulsiveness variables;
+        -   We `select()` only the `$grid_id` identifier columns with counts for `$BUSINESS_COUNT`, `$FINSERV_COUNT` and `$MRT_EXIT_COUNT`,
+        -   We use `st_drop_geometry()` to remove the geospatial data
+    2.  Next, we `left_join()` this to our `inter_zonal_flow` dataset
+        -   Since these are propulsive variables, we join this to the `$ORIGIN_HEX`
+        -   For ease of reading later, we rename these columns by adding a prefix `P_` for propulsive variables:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -1598,15 +1440,12 @@ inter_zonal_flow_prop
 
 ### 4.1.A Attractiveness Variables Count
 
-- Similar to the above, we repeat the step for attractiveness variables by creating `attr_df`;
-      - Repeat to `select()` only the `$grid_id` identifier columns with counts for `$ENTERTAIN_COUNT`, `$FNB_COUNT`, `$LEISURE_COUNT`, `$RETAIL_COUNT`,  and `$hdb_COUNT`,
-      - We use `st_drop_geometry()` to remove the geospatial data
-  2. Next, we `left_join()` this to our `inter_zonal_flow_prop` dataset from the previous step
-      - Since these are attractiveness variables, we join this to the `$DESTIN_HEX`
-      - For ease of reading later, we rename these columns by adding a prefix `A_` for attractive  variables:
-      
+-   Similar to the above, we repeat the step for attractiveness variables by creating `attr_df`; - Repeat to `select()` only the `$grid_id` identifier columns with counts for `$ENTERTAIN_COUNT`, `$FNB_COUNT`, `$LEISURE_COUNT`, `$RETAIL_COUNT`, and `$hdb_COUNT`, - We use `st_drop_geometry()` to remove the geospatial data
+    2.  Next, we `left_join()` this to our `inter_zonal_flow_prop` dataset from the previous step
+        -   Since these are attractiveness variables, we join this to the `$DESTIN_HEX`
+        -   For ease of reading later, we rename these columns by adding a prefix `A_` for attractive variables:
+
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -1624,9 +1463,9 @@ SIM_data <- inter_zonal_flow_prop %>%
 SIM_data
 ```
 
-- Let's perform a quick check to ensure no intra-zonal flow:
+-   Let's perform a quick check to ensure no intra-zonal flow:
+
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 SIM_data[SIM_data$ORIGIN_HEX==SIM_data$DESTIN_HEX,]
@@ -1635,17 +1474,15 @@ SIM_data[SIM_data$ORIGIN_HEX==SIM_data$DESTIN_HEX,]
 -   Now, let's examine the summary of our `SIM_data`:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 summary(SIM_data)
 ```
 
-- There are hexagons with 0 values for counts, e.g. they contain 0 businesses, or 0 HDB blocks within.
-- We will coerce all 0 values to 0.99 to avoid affecting the log values later.
+-   There are hexagons with 0 values for counts, e.g. they contain 0 businesses, or 0 HDB blocks within.
+-   We will coerce all 0 values to 0.99 to avoid affecting the log values later.
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -1656,11 +1493,11 @@ SIM_data[, replace_zeroes_columns] <- apply(SIM_data[, replace_zeroes_columns], 
 
 summary(SIM_data)
 ```
-- Finally, we convert `$ORIGIN_HEX` and `$DESTIN_HEX` to factor, also for our modelling purposes later.
-- We write to RDS
+
+-   Finally, we convert `$ORIGIN_HEX` and `$DESTIN_HEX` to factor, also for our modelling purposes later.
+-   We write to RDS
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -1671,13 +1508,11 @@ write_rds(SIM_data,
           "data/rds/SIM_data_tidy.rds")
 ```
 
-
 ## 4.2 Define R-Squared Function
 
-- For estimating model goodness-of-fit later, we need to define `CalcRSquared()` to estimate the goodness-of-fit for our 4 models later:
+-   For estimating model goodness-of-fit later, we need to define `CalcRSquared()` to estimate the goodness-of-fit for our 4 models later:
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 CalcRSquared <- function(observed,estimated){
@@ -1688,29 +1523,15 @@ CalcRSquared <- function(observed,estimated){
 
 ```
 
-
-```{r}
-#| eval: false
-#| code-fold: true
-#| code-summary: "show code"
-
-# length(unique(SIM_data$DESTIN_HEX)) #813
-# length(unique(SIM_data$ORIGIN_HEX)) #816
-# 
-# unique_origin_hex <- unique(SIM_data$ORIGIN_HEX)
-# unique_destin_hex <- unique(SIM_data$DESTIN_HEX)
-# unique_origin_hex[!unique(SIM_data$ORIGIN_HEX) %in% unique(SIM_data$DESTIN_HEX)]
-# unique_destin_hex[!unique(SIM_data$DESTIN_HEX) %in% unique(SIM_data$ORIGIN_HEX)]
-```
-
-- We're finally ready to create our models.
+-   We're finally ready to create our models.
 
 ::: callout-important
 ## **Q:** Present the modelling results by using appropriate geovisualisation and graphical visualisation methods. (Not more than 5 visuals)
 :::
 
-## 4.3 `uncSIM`:  Unconstrained Spatial Interaction Model
-- We use `glm()` to construct a general linear regression model with all our attractiveness and propulsiveness factors;
+## 4.3 `uncSIM`: Unconstrained Spatial Interaction Model
+
+-   We use `glm()` to construct a general linear regression model with all our attractiveness and propulsiveness factors;
 
 ```{r}
 #| eval: false
@@ -1732,41 +1553,50 @@ uncSIM <- glm(formula = SUM_TRIPS ~
               family = poisson(link = "log"),
               data = SIM_data,
               na.action = na.exclude)
-uncSIM
+write_rds(uncSIM, "data/rds/uncSIM.rds")
 ```
+
+-   For memory reasons, we write- and read- the model to RDS to save space and time while rendering.
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+uncSIM <- read_rds("data/rds/uncSIM.rds")
+summary(uncSIM)
+```
+
 ::: callout-important
 ## **Q:** With reference to the Spatial Interaction Model output tables, maps and data visualisation prepared, describe the modelling results. (not more than 100 words per visual).
 :::
 
 ### 4.3c Commentary on `uncSIM`
-- We can compare the size of the coefficients to assess the impact of the explanatory factors;
-    - The decay factor, `log(dist)`, is clearly a strong determinant of the number of trips, with -1.47 as a coefficient. This also reiterates some patterns seen earlier in some visualizations, namely, that greater distance results in fewer trips.
-    - `MRT_EXIT_COUNT` and `HDB_COUNT` have the highest coefficients (0.45, 0.38) among propulsiveness/attractiveness features, with the next closest being `FINSERV_COUNT`, validating some parts of our hypothesis.
-    - However, `BUSINESS_COUNT` and `FNB_COUNT` show extremely small (absolute value <0.06), negative values. It may be that they are outweighed by other factors, or perhaps are wrongly attributed.
 
+-   We can compare the size of the coefficients to assess the impact of the explanatory factors;
+    -   The decay factor, `log(dist)`, is clearly a strong determinant of the number of trips, with -1.47 as a coefficient. This also reiterates some patterns seen earlier in some visualizations, namely, that greater distance results in fewer trips.
+    -   `MRT_EXIT_COUNT` and `HDB_COUNT` have the highest coefficients (0.45, 0.38) among propulsiveness/attractiveness features, with the next closest being `FINSERV_COUNT`, validating some parts of our hypothesis.
+    -   However, `BUSINESS_COUNT` and `FNB_COUNT` show extremely small (absolute value \<0.06), negative values. It may be that they are outweighed by other factors, or perhaps are wrongly attributed.
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 CalcRSquared(uncSIM$data$SUM_TRIPS, uncSIM$fitted.values)
 ```
-- This R-squared of 0.30 is quite low, indicating the model doesn't perform super great.
-- With more time, I would have enjoyed testing this model for multicollinearity, or doing PCA and eliminating unimportant variables. 
+
+-   This R-squared of 0.30 is quite low, indicating the model doesn't perform super great.
+-   With more time, I would have enjoyed testing this model for multicollinearity, or doing PCA and eliminating unimportant variables.
 
 ## 4.4 `orcSIM`: Origin Constrained Spatial Interaction Model
 
--  In the origin-constrained SIM, we regard each `$ORIGIN_HEX` as a unique factor (dummy variable), and only consider attractiveness variables;
-    - The formula defined is similar to `uncSIM` above;
-    - We add a constant (`-1`) to remove the intercept.
-    - Here, we have to set `max.print()` to 10,000 in order to allow for us to view the entire variable set.
+-   In the origin-constrained SIM, we regard each `$ORIGIN_HEX` as a unique factor (dummy variable), and only consider attractiveness variables;
+    -   The formula defined is similar to `uncSIM` above;
+    -   We add a constant (`-1`) to remove the intercept.
+    -   Here, we have to set `max.print()` to 10,000 in order to allow for us to view the entire variable set.
 
 ```{r}
 #| eval: false
 #| code-fold: true
 #| code-summary: "show code"
-
-options(max.print = 10000)  
 
 orcSIM <- glm(formula = SUM_TRIPS ~ 
                 ORIGIN_HEX +
@@ -1779,35 +1609,51 @@ orcSIM <- glm(formula = SUM_TRIPS ~
               family = poisson(link = "log"),
               data = SIM_data,
               na.action = na.exclude)
+write_rds(orcSIM, "data/rds/orcSIM.rds")
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+options(max.print = 10000)  
+orcSIM <- read_rds("data/rds/orcSIM.rds")
 summary(orcSIM)
 ```
 
-### 4.4c Commentary on `orcSIM`
-- Once again, we compare the size of the coefficients to assess the impact of the explanatory factors;
-    - The decay factor, `log(dist)`, is clearly a strong determinant of the number of trips, with -1.47 as a coefficient. This also reiterates some patterns seen earlier in some visualizations, namely, that greater distance results in fewer trips.
-    - `MRT_EXIT_COUNT` and `HDB_COUNT` have the highest coefficients (0.45, 0.38) among propulsiveness/attractiveness features, with the next closest being `FINSERV_COUNT`, validating some parts of our hypothesis.
-    - However, `BUSINESS_COUNT` and `FNB_COUNT` show extremely small (absolute value <0.06), negative values. It may be that they are outweighed by other factors, or perhaps are wrongly attributed.
+-   In case R/Quarto crashes, we add a copy of relevant coefficient readouts here:
 
-
-```{r}
-#| eval: false
-#| code-fold: true
-#| code-summary: "show code"
-CalcRSquared(uncSIM$data$SUM_TRIPS, uncSIM$fitted.values)
+```         
+Coefficients:
+                         Estimate Std. Error  z value Pr(>|z|)    
+log(A_ENTERTAIN_COUNT)  0.1353021  0.0008526   158.70   <2e-16 ***
+log(A_FNB_COUNT)        0.0564351  0.0003153   178.98   <2e-16 ***
+log(A_LEISURE_COUNT)   -0.0512839  0.0003726  -137.63   <2e-16 ***
+log(A_RETAIL_COUNT)     0.1188308  0.0001777   668.88   <2e-16 ***
+log(A_HDB_COUNT)        0.3676924  0.0001778  2067.77   <2e-16 ***
+log(dist)              -1.4658504  0.0002628 -5577.59   <2e-16 ***
 ```
-- This R-squared of 0.30 is quite low, indicating the model doesn't perform super great.
-- With more time, I would have enjoyed testing this model for multicollinearity, or doing PCA and eliminating unimportant variables. 
+
+### 4.4c Commentary on `orcSIM`
+
+-   Once again, we compare the size of the coefficients to assess the impact of the explanatory factors;
+    -   The decay factor, `log(dist)`, is clearly a strong determinant of the number of trips, with -1.47 as a coefficient. This also reiterates some patterns seen earlier in some visualizations, namely, that greater distance results in fewer trips.
+    -   `MRT_EXIT_COUNT` and `HDB_COUNT` have the highest coefficients (0.45, 0.38) among propulsiveness/attractiveness features, with the next closest being `FINSERV_COUNT`, validating some parts of our hypothesis.
+    -   However, `BUSINESS_COUNT` and `FNB_COUNT` show extremely small (absolute value \<0.06), negative values. It may be that they are outweighed by other factors, or perhaps are wrongly attributed.
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 CalcRSquared(orcSIM$data$SUM_TRIPS, orcSIM$fitted.values)
 ```
 
-## 3.1 Destination Constrained
+-   This R-squared of 0.45 is higher than for our unconstrained `uncSIM` model, however it is still relatively low.
 
--   Combine Flow data with hexagon sf
+## 4.5 `decSIM` Destination Constrained Spatial Interaction Model
+
+-   In the destination-constrained SIM, we regard each `$DESTIN_HEX` as a unique factor (dummy variable), and only consider propulsiveness variables;
+    -   The formula defined is similar to `decSIM` above;
+    -   We add a constant (`-1`) to remove the intercept.
 
 ```{r}
 #| eval: false
@@ -1824,20 +1670,49 @@ decSIM <- glm(formula = SUM_TRIPS ~
               family = poisson(link = "log"),
               data = SIM_data,
               na.action = na.exclude)
-summary(decSIM)
-
+write_rds(decSIM, "data/rds/decSIM.rds")
 ```
 
+-   As before, we read/write to RDS to save space/time.
+
 ```{r}
-#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+options(max.print = 10000)  
+decSIM <- read_rds("data/rds/decSIM.rds")
+summary(decSIM)
+```
+
+-   In case R/Quarto crashes, we add a copy of relevant coefficient readouts here for `decSIM`:
+
+```         
+Coefficients:
+                         Estimate Std. Error  z value Pr(>|z|)    
+log(P_BUSINESS_COUNT) -0.0072523  0.0001856   -39.08   <2e-16 ***
+log(P_MRT_EXIT_COUNT)  0.4958807  0.0003921  1264.79   <2e-16 ***
+log(P_FINSERV_COUNT)   0.2948417  0.0002426  1215.21   <2e-16 ***
+log(dist)             -1.5435141  0.0002644 -5837.79   <2e-16 ***
+```
+
+### 4.5c Commentary on `decSIM`
+
+-   Once again, we compare the size of the coefficients to assess the impact of the explanatory factors;
+    -   As above, the decay factor, `log(dist)`, is clearly a strong determinant of the number of trips, with -1.54
+    -   Similar to the above, we see `MRT_EXIT_COUNT` followed by `FINSERV_COUNT` having high coefficient values.
+    -   `BUSINESS_COUNT` shows an extremely small (\<0.01) value, again suggesting that it not relevant or misaligned.
+
+```{r}
 #| code-fold: true
 #| code-summary: "show code"
 CalcRSquared(decSIM$data$SUM_TRIPS, decSIM$fitted.values)
 ```
 
-## 3.1 Doubly constrained
+-   The R-squared value of 0.4157 is not great, but performs better than the unconstrained model.
 
--   Combine Flow data with hexagon sf
+## 4.6 Doubly Constrained Spatial Interaction Modelling
+
+-   In the Doubly-Constrained SIM, we eliminate all variables and focus only on the identities of the origin and destination hexagons.
 
 ```{r}
 #| eval: false
@@ -1851,8 +1726,32 @@ dbcSIM <- glm(formula = SUM_TRIPS ~
               family = poisson(link = "log"),
               data = SIM_data,
               na.action = na.exclude)
+write_rds(dbcSIM, "data/rds/dbcSIM.rds")
+```
+
+-   As before, we read/write to RDS to save space/time.
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+options(max.print = 10000)  
+dbcSIM <- read_rds("data/rds/dbcSIM.rds")
 summary(dbcSIM)
 ```
+
+-   In case R/Quarto crashes, we add a copy of relevant coefficient readouts here for `dbcSIM`:
+
+```         
+Coefficients:
+                         Estimate Std. Error  z value Pr(>|z|)    
+log(dist)     -1.6045515  0.0002857 -5615.262  < 2e-16 ***
+```
+
+### 4.6c Commentary on `dbcSIM`
+
+-   Once again, we compare the size of the coefficients to assess the impact of the explanatory factors;
+    -   As above, the decay factor, `log(dist)`, is clearly a strong determinant of the number of trips, with coefficient of -1.60 and a low z-value, indicating strong statistical significance.
 
 ```{r}
 #| eval: false
@@ -1861,9 +1760,11 @@ summary(dbcSIM)
 CalcRSquared(dbcSIM$data$SUM_TRIPS, dbcSIM$fitted.values)
 ```
 
-## Model Comparison
+-   The R-squared value of 0.586 is also higher than for other models, suggesting it performs better. Now it is approaching good performance.
 
--   Combine Flow data with hexagon sf
+## 4.7RMSE Model Comparison by RMSE
+
+-   Aggregating all 4 models by RMSE, we perform the following printout:
 
 ```{r}
 #| eval: false
@@ -1877,6 +1778,16 @@ model_list <- list(
 compare_performance(model_list,
                     metrics = "RMSE")
 ```
+
+-   It appears that the doubly-constrained model performs best, with the lowest error;
+    -   `dbcSIM` relies only on the identity of the origin and destination hexes, without any of the attractiveness/propulsiveness variables we have selected for analysis. Another way to say it is that the identity of each hexagon is unique, and thus encodes some variety of specific attractiveness/propulsiveness variables beyond our analysis.
+    -   It is possible, if we gather more data and more variables, to build a better model and thus approach the performance/RMSE of our doubly-constrained SIM model.
+-   The slight edge on Origin-Constrained model (i.e. RMSE slightly lower than for Destination_Constrained) suggests our choice of propulsiveness variables outperform our choices on attractiveness variables.
+    -   However, my intuition is simply that the MRT Station Exits are simply too strong a factor for bus trip origin. Given more time, we should repeat with MRT Stations on both Origin and Destination models.
+
+## 4.7g Model Comparison by Goodness-of-Fit
+
+-   Finally, we can perform a quick scatterplot to show the goodness-of-fit of our fitted values, across all 4 models.
 
 ```{r}
 #| eval: false
@@ -1909,18 +1820,16 @@ model_comparison <- SIM_data %>%
   )
 
 
-write_rds(model_comparison, "data/rds/model_comparison")
+write_rds(model_comparison, "data/rds/model_comparison.rds")
 model_comparison
 ```
 
-## create scatterplot
-
--   create scatterplot
+-   Here we again use the read/write RDS trick.
 
 ```{r}
-#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
+model_comparison <- read_rds("data/rds/model_comparison.rds")
 orc_p <- ggplot(data = model_comparison,
                 aes(x = orcTRIPS,
                     y = SUM_TRIPS)) +
@@ -1958,8 +1867,17 @@ dec_p <- ggplot(data = model_comparison,
 (unc_p + orc_p) / (dec_p + dbc_p)
 ```
 
-## Model Comparison
+-   Overall, it looks like the doubly-constrained model (dbcTRIPS) shows better fit for most points and outliers compared to the other models;
+-   It reiterates what was said in Section 4.7RMSE, that the doubly-constrained model performs best.
 
--   Combine Flow data with hexagon sf
+## 5. Summary and Future Work
 
-
+-   Overall, we can observe that the flow patterns of public transportation are highly complex.
+-   **Existing Transportation Systems Work**. It appears the current flow of bus traffic on weekday evenings does cater to the expected regions (from CBD areas, towards residential areas, with transit hubs near MRT Stations). However, we must be careful not to fall for a logical fallacy of only looking at data that is there.
+    -   Most commuters have no alternatives but to take public transport, so it makes sense that our data shows that existing public transport is utilised and popular.
+    -   However, this does not include untracked travel, including people who walk between stations/stops, or use alternative transports like shuttle buses, (rental) bicycles, and so on.
+    -   It's also possible that routes that have not been catered for result in people relying on taxi or ride-hailing services.
+    -   However, it must be acknowledged that the interplay of bus-and-MRT Stations do work.
+-   **More Data Is Needed**. It's clear that of our four Spatial Interaction Models, the best-performing model disregards the propulsiveness/attractiveness variables we have selected, in favour of dummy-encoding each analytical hexagon as its own dummy variables. As mentioned, this suggests that there are hidden variables that are not fully described by our analysis.
+    -   It must be acknowledged that we did not do any data cleaning or feature selection, but this module is not focused on that.
+-   **More Time Is Needed**. Unfortunately we must also acknowledge our lack of time for analysis. In particular, our `HDB` dataset analysis leaves much to be desired; we only counted the number of HDB buildings and not the relative population living there. Indeed, we can envisage an entire study based on the HDB.csv, making use of the number of dwelling units or even the resident age groups, and fitting the best predictor to the dataset.
