@@ -44,8 +44,3 @@ format:
     toc: true
 
 editor: visual
-
-knitr:
-  opts_chunk:
-    dev: ragg_png
-

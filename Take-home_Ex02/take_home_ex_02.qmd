@@ -1660,6 +1660,7 @@ summary(SIM_data)
 - We write to RDS
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -1676,6 +1677,7 @@ write_rds(SIM_data,
 - For estimating model goodness-of-fit later, we need to define `CalcRSquared()` to estimate the goodness-of-fit for our 4 models later:
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 CalcRSquared <- function(observed,estimated){
@@ -1688,6 +1690,7 @@ CalcRSquared <- function(observed,estimated){
 
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -1702,28 +1705,19 @@ CalcRSquared <- function(observed,estimated){
 
 - We're finally ready to create our models.
 
-## 4.3 Creating 
-### read SIMData
+::: callout-important
+## **Q:** Present the modelling results by using appropriate geovisualisation and graphical visualisation methods. (Not more than 5 visuals)
+:::
+
+## 4.3 `uncSIM`:  Unconstrained Spatial Interaction Model
+- We use `glm()` to construct a general linear regression model with all our attractiveness and propulsiveness factors;
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 SIM_data <- readRDS("data/rds/SIM_data_tidy.rds")
-SIM_data
-```
 
-
-
-## 3.1 Unconstrained Spatial Interaction Model
-
--   Combine Flow data with hexagon sf
-
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
-
-# important! change the grid_id to factor/categorical or character field
-# if numeric, treated as continuous variable
 
 uncSIM <- glm(formula = SUM_TRIPS ~ 
                 log(P_BUSINESS_COUNT) + 
@@ -1733,35 +1727,42 @@ uncSIM <- glm(formula = SUM_TRIPS ~
                 log(A_FNB_COUNT) +
                 log(A_LEISURE_COUNT) + 
                 log(A_RETAIL_COUNT) + 
+                log(A_HDB_COUNT) + 
                 log(dist),
               family = poisson(link = "log"),
               data = SIM_data,
               na.action = na.exclude)
 uncSIM
-
-# SIM_data[which(! complete.cases(SIM_data)), ]
 ```
+::: callout-important
+## **Q:** With reference to the Spatial Interaction Model output tables, maps and data visualisation prepared, describe the modelling results. (not more than 100 words per visual).
+:::
 
-## 3.1r UncSIM R-Squared Function
+### 4.3c Commentary on `uncSIM`
+- We can compare the size of the coefficients to assess the impact of the explanatory factors;
+    - The decay factor, `log(dist)`, is clearly a strong determinant of the number of trips, with -1.47 as a coefficient. This also reiterates some patterns seen earlier in some visualizations, namely, that greater distance results in fewer trips.
+    - `MRT_EXIT_COUNT` and `HDB_COUNT` have the highest coefficients (0.45, 0.38) among propulsiveness/attractiveness features, with the next closest being `FINSERV_COUNT`, validating some parts of our hypothesis.
+    - However, `BUSINESS_COUNT` and `FNB_COUNT` show extremely small (absolute value <0.06), negative values. It may be that they are outweighed by other factors, or perhaps are wrongly attributed.
+
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 CalcRSquared(uncSIM$data$SUM_TRIPS, uncSIM$fitted.values)
 ```
+- This R-squared of 0.30 is quite low, indicating the model doesn't perform super great.
+- With more time, I would have enjoyed testing this model for multicollinearity, or doing PCA and eliminating unimportant variables. 
+
+## 4.4 `orcSIM`: Origin Constrained Spatial Interaction Model
+
+-  In the origin-constrained SIM, we regard each `$ORIGIN_HEX` as a unique factor (dummy variable), and only consider attractiveness variables;
+    - The formula defined is similar to `uncSIM` above;
+    - We add a constant (`-1`) to remove the intercept.
+    - Here, we have to set `max.print()` to 10,000 in order to allow for us to view the entire variable set.
 
 ```{r}
-#| code-fold: true
-#| code-summary: "show code"
-r2_mcfadden(uncSIM)
-
-```
-
-## 3.2 Origin Constrained Formula
-
--   Combine Flow data with hexagon sf
-
-```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -1773,6 +1774,7 @@ orcSIM <- glm(formula = SUM_TRIPS ~
                 log(A_FNB_COUNT) +
                 log(A_LEISURE_COUNT) + 
                 log(A_RETAIL_COUNT) + 
+                log(A_HDB_COUNT) + 
                 log(dist) - 1,
               family = poisson(link = "log"),
               data = SIM_data,
@@ -1780,7 +1782,24 @@ orcSIM <- glm(formula = SUM_TRIPS ~
 summary(orcSIM)
 ```
 
+### 4.4c Commentary on `orcSIM`
+- Once again, we compare the size of the coefficients to assess the impact of the explanatory factors;
+    - The decay factor, `log(dist)`, is clearly a strong determinant of the number of trips, with -1.47 as a coefficient. This also reiterates some patterns seen earlier in some visualizations, namely, that greater distance results in fewer trips.
+    - `MRT_EXIT_COUNT` and `HDB_COUNT` have the highest coefficients (0.45, 0.38) among propulsiveness/attractiveness features, with the next closest being `FINSERV_COUNT`, validating some parts of our hypothesis.
+    - However, `BUSINESS_COUNT` and `FNB_COUNT` show extremely small (absolute value <0.06), negative values. It may be that they are outweighed by other factors, or perhaps are wrongly attributed.
+
+
 ```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+CalcRSquared(uncSIM$data$SUM_TRIPS, uncSIM$fitted.values)
+```
+- This R-squared of 0.30 is quite low, indicating the model doesn't perform super great.
+- With more time, I would have enjoyed testing this model for multicollinearity, or doing PCA and eliminating unimportant variables. 
+
+```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 CalcRSquared(orcSIM$data$SUM_TRIPS, orcSIM$fitted.values)
@@ -1791,6 +1810,7 @@ CalcRSquared(orcSIM$data$SUM_TRIPS, orcSIM$fitted.values)
 -   Combine Flow data with hexagon sf
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -1809,6 +1829,7 @@ summary(decSIM)
 ```
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 CalcRSquared(decSIM$data$SUM_TRIPS, decSIM$fitted.values)
@@ -1819,6 +1840,7 @@ CalcRSquared(decSIM$data$SUM_TRIPS, decSIM$fitted.values)
 -   Combine Flow data with hexagon sf
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -1833,6 +1855,7 @@ summary(dbcSIM)
 ```
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 CalcRSquared(dbcSIM$data$SUM_TRIPS, dbcSIM$fitted.values)
@@ -1843,6 +1866,7 @@ CalcRSquared(dbcSIM$data$SUM_TRIPS, dbcSIM$fitted.values)
 -   Combine Flow data with hexagon sf
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 model_list <- list(
@@ -1855,6 +1879,7 @@ compare_performance(model_list,
 ```
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 
@@ -1884,7 +1909,6 @@ model_comparison <- SIM_data %>%
   )
 
 
-
 write_rds(model_comparison, "data/rds/model_comparison")
 model_comparison
 ```
@@ -1894,6 +1918,7 @@ model_comparison
 -   create scatterplot
 
 ```{r}
+#| eval: false
 #| code-fold: true
 #| code-summary: "show code"
 orc_p <- ggplot(data = model_comparison,
@@ -1937,46 +1962,4 @@ dec_p <- ggplot(data = model_comparison,
 
 -   Combine Flow data with hexagon sf
 
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
 
-```
-
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
-CalcRSquared(decSIM$data$SUM_TRIPS, decSIM$fitted.values)
-```
-
-## Model Comparison
-
--   Combine Flow data with hexagon sf
-
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
-
-```
-
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
-CalcRSquared(decSIM$data$SUM_TRIPS, decSIM$fitted.values)
-```
-
-## Model Comparison
-
--   Combine Flow data with hexagon sf
-
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
-
-```
-
-```{r}
-#| code-fold: true
-#| code-summary: "show code"
-CalcRSquared(decSIM$data$SUM_TRIPS, decSIM$fitted.values)
-```
