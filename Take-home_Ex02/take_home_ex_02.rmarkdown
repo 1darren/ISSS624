@@ -1,0 +1,2133 @@
+---
+title: "Take-home Exercise 2"
+editor: source
+---
+
+
+# 0. Goals & Objectives.
+
+::: callout-note
+"A map is not interesting; the patterns and factors revealed by the map is interesting. Can we explain things by building a spatial model?" \-- Prof Kam
+:::
+
+In this study, we construct a [Spatial Interaction Model](https://r4gdsa.netlify.app/chap16) to determine factors affecting urban mobility patterns, specifically public bus transit. This helps us demonstrate the potential value of Geospatial Data Science & Analysis, by harnessing the explosive growth of data from computing technologies like SMART cards for public transport.
+
+More specifically, we study public bus mobility patterns during Weekday Evening peak periods.
+
+In this study, we build a [Generalised Linear Regression Model (GLM)](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/glm) to study a [Modifible Areal Unit Problem (MAUP)](https://en.wikipedia.org/wiki/Modifiable_areal_unit_problem). Singapore's Master Plan Subzone (MPSZ) is too large and coarse for study; instead, we create analytical hexagons to approximate a [traffic/transportation analysis zone (TAZ)](https://en.wikipedia.org/wiki/Traffic_analysis_zone).
+
+More detail about the task from: <https://isss624-ay2023-24nov.netlify.app/take-home_ex02>
+
+::: callout-important
+## Important Note
+
+Due to the nature of EDA and Data Analysis, parts of this page have been Collapsed or placed behind tabs, to avoid excessive scrolling.
+
+For easier reading, this study is also presented in point-form.
+:::
+
+## 0.1 Datasets used
+
+### 0.1.1 Aspatial Dataset
+
+-   Two aspatial datasets were used in this study, as described below:
+
++------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+| Dataset, Purpose & Source:                                                                                             | Key columns                                                                      |
++========================================================================================================================+==================================================================================+
+| `hdb.csv` : HDB Property information data with geocoding                                                               | -   `lat`, `long`: coordinates \|                                                |
+|                                                                                                                        | -   `max_floors`, `total_dwelling_units` : idea of how many units each HDB holds |
+| *Via [data.gov](https://beta.data.gov.sg/collections/150/view)*                                                        |                                                                                  |
++------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+| `origin_destination_bus_202310` : Volume of bus passenger trips, by origin/destination, data prepared for 2023 October | -   `ORIGIN_PT_code`, `DESTINATION_PT_code`: O/D information on bus trip         |
+|                                                                                                                        | -   `TIME_PER_HOUR`, `DAY_TYPE`: Time/Date data on when the trips were taken     |
+| *Via [LTA DataMall](https://datamall.lta.gov.sg/content/datamall/en.html)*                                             | -   `TOTAL_TRIPS`: Bus trip passenger volume                                     |
++------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+
+: Table 1: Aspatial Datasets used. \|
+
+### 0.1.2 Geospatial Dataset
+
+-   Geospatial datasets were used for two major purposes in this study:
+
+    -   To provide context: `MPSZ2019` helped give us the outline of Singapore and to provide context for our analytical hexagons/TAZ in the study. Importantly, `BusStop` also helped trace the location of bus stops to locate the flow of traffic.
+
+    -   As explanatory variables: Details such as the location of businesses, F&B outlets, and retail areas.
+
++------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+| Filename, Purpose & Source:                                                                                            | Key columns                                                                      |
++========================================================================================================================+==================================================================================+
+| `hdb.csv` : HDB Property information data with geocoding                                                               | -   `lat`, `long`: coordinates \|                                                |
+|                                                                                                                        | -   `max_floors`, `total_dwelling_units` : idea of how many units each HDB holds |
+| *Via [data.gov](https://beta.data.gov.sg/collections/150/view)*                                                        |                                                                                  |
++------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+| `origin_destination_bus_202310` : Volume of bus passenger trips, by origin/destination, data prepared for 2023 October | -   `ORIGIN_PT_code`, `DESTINATION_PT_code`: O/D information on bus trip         |
+|                                                                                                                        | -   `TIME_PER_HOUR`, `DAY_TYPE`: Time/Date data on when the trips were taken     |
+| *Via [LTA DataMall](https://datamall.lta.gov.sg/content/datamall/en.html)*                                             | -   `TOTAL_TRIPS`: Bus trip passenger volume                                     |
++------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+
+: Table 2: Geospatial Datasets used. \|
+
+# 1. Geospatial Data Wrangling
+
+This study was performed in R, written in R Studio, and published using Quarto.
+
+## 1.1 Import Packages
+
+This function calls `pacman` to load a number of key `R` packages for use. The following packages are grouped thematically by function.
+
+-   `tmap` : For thematic mapping; a powerful mapping package for geospatial visualisation
+    -   `leaflet`: for custom layer controls over `tmap` visualisations.
+-   `sf` : For geospatial data handling, but also geoprocessing of buffer zones, point-in-polygon count, etc;
+    -   `sp` : An earlier iteration of `sf`, but loaded here for its high performance `spDists()` functions
+    -   `sfdep` : For useful functions when creating weight matrix, LISA calculations etc;
+    -   `wdpar`: For unique function to fix invalid geometry.
+-   `tidyverse` : For non-spatial data handling; commonly used R package and contains `dplyr` for dataframe manipulation and `ggplot` for data visualization;
+    -   `reshape2` : For the `melt()` function, which suits our need better than `tidyr`'s `pivot_longer()` alternative
+    -   `patchwork`: For arranging subplots created by `ggplot` with simpler syntax
+    -   `DT`: for displaying datatables;
+-   `stplanar`: For creating desire lines to visualize O/D flows
+-   `performance`: For comparing performance and RMSE across models
+
+
+```{r}
+# NB: Patchwork is still in development, and installed directly from github. Uncomment the following line if you face patchwork errors.
+# devtools::install_github("thomasp85/patchwork")
+
+pacman::p_load(tmap, sf, sfdep, tidyverse, DT, leaflet, stplanr, sp, reshape2, wdpar, patchwork, performance)
+
+```
+
+
+## 1.2 Import Geospatial Data I
+
+### 1.2.1 `raw_bus_stop_sf`: Load Geospatial Bus Stop Data
+
+-   First, we load `BusStop` shapefile data from [LTA Datamall](https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html);
+-   `st_read()` is used to import the ESRI Shapefile data into an `sf` dataframe.
+    -   From previous take-home exercise, we know BusStop has the incorrect CRS (coordinate reference system), as EPSG 9001 instead of 3414, so we use `st_transform()` to correct this
+    -   We use `head()` to preview the first 6 rows
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+raw_bus_stop_sf <- st_read(dsn = "data/geospatial", 
+                 layer = "BusStop") %>%
+  st_transform(crs = 3414)
+head(raw_bus_stop_sf)
+```
+
+
+-   We check the coordinate reference system with `st_crs()`; and see that it is now indeed correctly set to 3414:
+
+::: {.callout-warning collapse="true"}
+## EXPAND To See: Full `st_crs`Readout
+
+
+```{r}
+#| eval: false
+#| code-fold: true 
+#| code-summary: "show code"  
+st_crs(raw_bus_stop_sf)
+```
+
+:::
+
+-   We use `qtm()` to perform a quick visualization of the various bus stops:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+tmap_mode("plot")
+qtm(raw_bus_stop_sf)
+
+```
+
+
+However, this is hard to visualize without the context of boundaries and details. Let's load the `mpsz` shapefile to provide geographical context
+
+### 1.2.2 `mpsz_sf`: Visualizing Singapore's Master Plan 2019 Subzone Boundaries
+
+-   We now load Master Plan 2019 Subzone Boundary to provide geographical context for our bus stops.
+
+-   Next, we load `MPSZ-2019` shapefile data from [Data.gov.sg](https://beta.data.gov.sg/collections/1749/view), comprising *Master Plan 2019 Subzone Boundary (No Sea)* data ;
+
+-   `st_read()` is used to import the ESRI Shapefile data into an `sf` dataframe;
+
+    -   We use `st_crs()` to check the Coordinate Reference System (CRS);
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+mpsz_sf <- st_read(dsn = "data/geospatial", 
+                 layer = "MPSZ-2019")
+st_crs(mpsz_sf)
+```
+
+
+-   We see that `MPSZ-2019` is set to WGS 84/EPSG 4326 projection, which is inconsistent with the rest of our dataset;
+-   Thus, we use `st_transform()` to reproject the data to SVY21/EPSG 3414 Coordinate Reference System (CRS) to ensure consistent distance calculation:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+mpsz_sf <- mpsz_sf %>%
+  st_transform(crs=3414)
+st_crs(mpsz_sf)
+```
+
+
+-   Now, let's visualize the bus stop within the `mpsz` subzone boundaries;
+-   We set `tmap_mode("plot")` to allow us to scroll;
+-   We use `tm_shape() + tm_polygons()` to map a base layer of the `mpsz` boundaries;
+    -   On top of which, we layer `tm_shape() + tm_dots()` to show the bus stops.
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+tmap_mode("plot")
+tmap_options(check.and.fix = TRUE)
+tm_shape(mpsz_sf) +
+  tm_polygons() + 
+  tm_shape(raw_bus_stop_sf) + 
+  tm_dots()
+
+```
+
+
+-   We note there are a number of bus stops outside Singapore's boundaries; Specifically, three bus stops in a cluster just outside the Causeway, and one further North.
+-   We perform several steps to isolate & check the data;
+    -   we use `st_filter()` to find bus stops within Singapore's Administrative National Boundaries, and create `sg_bus_stop_sf` for future use.
+    -   to check what bus stops have been dropped, we use `anti_join()` to compare `raw_bus_stop_sf` with `sg_bus_stop_sf`. We use `st_drop_geometry` on both `sf` dataframes to only compare the non-geometry columns.
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+sg_bus_stop_sf <- st_filter(raw_bus_stop_sf, mpsz_sf)
+anti_join(st_drop_geometry(raw_bus_stop_sf), st_drop_geometry(sg_bus_stop_sf))
+
+```
+
+
+-   We see there are in fact 5 bus stops outside of Singapore (including the defunct [Kotaraya II Terminal](https://landtransportguru.net/kotaraya-ii-bus-terminal/)) that have been removed, which means our data cleaning was correct.
+
+## 1.3 Geospatial Data Cleaning
+
+### 1.3.1 Removing Duplicate Bus Stops
+
+-   From [Take-home Exercise 1](Take-home_Ex01/take_home_ex_01.html), we know that there are a number of repeated bus stops. We repeat some steps;
+-   We use `length()` to find the total number of raw values in the `$BUS_STOP_N` column of `sg_bus_stop_sf;`
+    -   We then compare this to `length(unique())` to find the unique values;
+-   And, indeed, we find there are 16 bus stops that are repeated;
+
+
+```{r}
+#| eval: false
+cat("\nResults before removing duplicates: \n=======================================================\n")
+cat("Total number of rows in sg_bus_stop_sf\t\t: ", paste0(length(sg_bus_stop_sf$BUS_STOP_N)))
+cat("\nTotal unique bus stop IDs in sg_bus_stop_sf\t: ", paste0(length(unique(sg_bus_stop_sf$BUS_STOP_N))))
+cat("\nRepeated bus stops\t\t\t\t:   ", paste0(length(sg_bus_stop_sf$BUS_STOP_N) - length(unique(sg_bus_stop_sf$BUS_STOP_N))))
+
+```
+
+
+-   It appears there are 16 datapoints that are specifically repeated; let's remove them by deleting the duplicated rows:
+    -   we use `duplicated()` to identify rows with repeated values of `$BUS_STOP_N`; duplicated rows will return `TRUE` while all other rows will return `FALSE`
+    -   We use `!` to invert the values, so only the unduplicated rows will return `TRUE`.
+    -   We then use square brackets `[]` to index `sg_bus_stop_sf` based on the rows, and return only the unduplicated rows;
+    -   We then assign the output using `<-` into `bus_stop_sf`, for use.
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+bus_stop_sf <- sg_bus_stop_sf[!duplicated(sg_bus_stop_sf$BUS_STOP_N), ]
+head(bus_stop_sf)
+
+cat("\nResults after removing duplicates: \n=======================================================\n")
+cat("Total number of rows in bus_stop_sf\t\t: ", paste0(length(bus_stop_sf$BUS_STOP_N)))
+cat("\nTotal unique bus stop IDs in bus_stop_sf\t: ", paste0(length(unique(bus_stop_sf$BUS_STOP_N))))
+cat("\nRepeated bus stops\t\t\t\t:   ", paste0(length(bus_stop_sf$BUS_STOP_N) - length(unique(bus_stop_sf$BUS_STOP_N))))
+```
+
+
+-   We can do a quick check to visualize these;
+    -   We use `tmap_mode("view")` to allow us to scroll around and check that the bus stops fall within Singapore's national boundaries, and set zoom limits to focus the attention
+    -   We combine `tm_shape()` and `tm_polygons()` to map the master plan subzones in grey;
+    -   We combine `tm_shape()` and `tm_dots()` to map locations of bus stops; for visual distinction with the grey zones, we use the "Spectral" palette
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+tmap_mode("view")
+tm_shape(mpsz_sf) +
+  tm_polygons() + 
+  tm_shape(bus_stop_sf) + 
+  tm_dots(col = "BUS_STOP_N", palette = "Spectral", legend.show = FALSE) + 
+  tm_view(set.zoom.limits = c(11, 13))
+tmap_mode("plot")
+```
+
+
+-   Now, we can start preparing the hexagon map.
+
+## 1.4 Generating Hexagon Map of Analytical Hexagons
+
+-   We generate the hexagon map in three steps:
+
+1.  We use `st_make_grid()` with `square = FALSE` to create the hexagon layer as defined in the study, which we name `raw_hex_grid`;
+    -   We pass `cellsize = 750` to create the hexagons of necessary size. Prof Kam defined the apothem as 375m, as the [Traffic Analysis Zone](https://en.wikipedia.org/wiki/Traffic_analysis_zone) is typically 750m in size.
+    -   We use `st_transform()` just in case we need to reproject the coordinate system, just in case.
+2.  We use `st_sf()` to convert `raw_hex_grid` into an `sf` dataframe for further manipulation later; - However, trying to visualize this right now just gives us a map full of hexagons, so we need to eliminate the empty hexagons;
+    -   We use `mutate()` to create a new column, `$n_bus_stops` that counts the number of bus stops in each hexagon using `lengths(st_intersects())`
+        -   `st_intersects()` gives us a list of bus stops in each hexagon, so we use `lengths()` to count the number
+3.  We create our final `sf` dataframe, `hexagon_sf` in two steps;
+    -   First, we use `filter()` to select only hexagons with nonzero number of bus stops;
+    -   Then, `mutate()` is used here to create a `grid_id` column, labelling only the hexagons with nonzero bus stops.
+
+-   Finally, we perform a quick plot to confirm that every bus stop is inside a hexagon;
+    -   Using `hexagon_sf` as our base layer, we use `tmap_shape()` and `tm_polygons()` to visualizes our hexes. We pass `palette = "Spectral"` for visual distinguishment against the black dots of the bus stops.
+    -   We use `tmap_shape()` and `tm_dots()` to visualize our bus stop as black dots
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+# STEP 1 - Create hexagon map 
+raw_hex_grid <- st_make_grid(bus_stop_sf, cellsize =750, square = FALSE) %>%
+  st_transform(crs = 3414)
+
+# STEP 2 - Convert to sf object and count the number of bus stops inside;
+raw_hex_grid <- st_sf(raw_hex_grid) %>%
+  mutate(n_bus_stops = lengths(st_intersects(raw_hex_grid, sg_bus_stop_sf))) 
+
+# Count number of points in each grid, code snippet referenced from: 
+# https://gis.stackexchange.com/questions/323698/counting-points-in-polygons-with-sf-package-of-r
+
+
+# STEP 3 - Filter for nonempty hexes and label:
+
+hexagon_sf <- filter(raw_hex_grid, n_bus_stops > 0) 
+hexagon_sf <- hexagon_sf %>%
+  mutate(grid_id = 1:nrow(hexagon_sf)) %>%
+  select(grid_id, raw_hex_grid, n_bus_stops)
+
+write_rds(hexagon_sf, "data/rds/hexagon_sf.rds")
+
+tmap_mode("plot")
+tm_shape(hexagon_sf) +
+  tm_polygons(col = "grid_id", palette = "Spectral", legend.show = FALSE) + 
+  tm_shape(bus_stop_sf) + 
+  tm_dots()
+tmap_mode("plot")
+```
+
+
+-   We can visually confirm that every black dot is within a hexagon.
+-   We re-use a bit of code from Take-Home Exercise 1 to plot our analytical hexagons on a map of Singapore and visualize the number of bus stops in each hexagon:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+tmap_mode("view")
+tm_basemap(providers$OneMapSG.Grey) + 
+  tm_shape(hexagon_sf) +
+  tm_fill(
+    col = "n_bus_stops",
+    palette = "-plasma",
+    style = "cont",
+    breaks = c(0, 4, 8, 12, 16, 20),
+    title = "Number of bus_stops",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+    popup.vars = c(
+      "Number of Bus Stops: " = "n_bus_stops"
+    ),
+    popup.format = list(
+      n_bus_stops = list(format = "f", digits = 0)
+    )
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7)  + 
+  tm_view(set.zoom.limits = c(11, 13))
+tmap_mode("plot")
+```
+
+
+-   Note the advantage of using [OneMapSG](https://www.onemap.gov.sg/home/index.html): We can see the faint lines of the MRT system underneath, connecting the darker regions of hexagons with high bus-stop-density. This may be a clue for later on.
+-   We perform some simple stats to count the total number of filtered hexagons, and to see the maximum number of bus stops in a hexagon.
+    -   Since our hexagons cover a larger area, the number of raw and filtered analytical hexagons have decreased compared to Take-Home Exercise 1;
+    -   However, the maximum number of bus stops per hexagon is higher, with 8 hexagons holding 17-19 bus stops.
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+
+# NB: Code reused from my own take-home exercise 1
+cat(paste("Total number of raw hexagons is\t\t\t: ", nrow(raw_hex_grid), "\n"))
+cat(paste("Total number of hexagons (n_bus_stop > 1) is\t: ", nrow(hexagon_sf)), "\n")
+
+cat("\nPrinting map_hexagon_sf:\n >> ")
+hexagon_sf[hexagon_sf$n_bus_stops > 16, ]
+```
+
+
+-   For the next step, we'll need to manage the Aspatial bus trips dataset, which is what we'll work on now.
+
+## 1.5 Aspatial Data Wrangling: Bus Trip Dataset
+
+### 1.5.1 Import Bus O/D Dataset
+
+-   For our purposes, we will focus only on 2023-October *Passenger Volume by Origin Destination Bus Stops*, downloaded from [LTA DataMall](https://datamall.lta.gov.sg/content/datamall/en.html);
+
+-   We use `read_csv()` to load the data from the .csv file;
+
+-   We use `select()` with a `-` sign to remove two columns redundant for our analysis:
+
+    -   `$PT_TYPE` column indicates the type of public transport, however, every value is "BUS"
+    -   `$YEAR_MONTH` column similarly has "2023-10" for every value, which we are aware of
+    -   With this in mind, we drop these two columns to save space.
+
+-   Finally, we use `mutate_at()` to convert two columns (`$ORIGIN_PT_CODE` and `$DESTINATION_PT_CODE`)from character to factor, for easier analysis.
+
+-   We use `str()` to check the columns, datatypes, and number of rows:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+odbus_2310 <- read_csv("data/aspatial/origin_destination_bus_202310.csv") %>%
+  select( -PT_TYPE, -YEAR_MONTH) %>%
+  mutate_at(c("ORIGIN_PT_CODE", "DESTINATION_PT_CODE"), as.factor)
+
+str(odbus_2310)
+```
+
+
+-   This is a huge `tibble` dataframe with over 5 million rows, so we will filter this now by peaks;
+-   For this study, we focus on Weekday afternoon peak
+
+### 1.5.2 Filter For Peaks -- Weekday Afternoon
+
+-   We now perform a multi-step filter process;
+    1.  We combine `mutate()` with `case_when()` to create a new column, `$PEAK`, based on the study criteria:
+        a.  We set the value to "WEEKDAY_AFTERNOON_PEAK" if `$DAY_TYPE` is "WEEKDAY" and bus tap-on time (e.g. `$TIME_PER_HOUR`) is between 5 pm and 8pm, inclusive;
+            -   Note that we convert the values for `$TIME_PER_HOUR` to 24-hour clock, e.g. "5pm" is "17" hundred hours, "8pm" is "20" hundred hours.
+        b.  For all remaining values, we assign an "Unknown" value.
+    2.  We then use `filter()` to eliminate those with "Unknown" `$PEAK` values, i.e. rows outside the period of interest for the study
+    3.  We use `group_by()` to group the values by `$ORIGIN_PT_CODE` and `$DESTINATION_PT_CODE`, and use `summarise()` to aggregate the sum of `$TOTAL_TRIPS` as a new column, `$TRIPS`.
+    4.  We use `write_rds()` to save the output dataframe, `odbus_filtered`, as an RDS object for future reference/load.
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+odbus_filtered <- odbus_2310 %>%
+  mutate(PEAK = case_when(
+    DAY_TYPE == "WEEKDAY" & TIME_PER_HOUR >= 17 &  TIME_PER_HOUR <= 20 ~ "WEEKDAY_AFTERNOON_PEAK",
+    TRUE ~ "Unknown"
+  )) %>%
+  filter(
+    case_when(
+      PEAK == "Unknown" ~ FALSE,
+      TRUE ~ TRUE
+    )) %>%
+  group_by(ORIGIN_PT_CODE, DESTINATION_PT_CODE) %>%
+  summarise(TRIPS = sum(TOTAL_TRIPS))
+
+
+write_rds(odbus_filtered, "data/rds/odbus_filtered_weekday.rds")
+head(odbus_filtered)
+```
+
+
+## 1.6 `od_data`: Creating bus trip flow data between hexagons
+
+-   For our study purposes, we need to have the number of bus trips originating from each hexagon. In order to achieve this, we must combine our three current dataframes:
+    -   `hexagon_sf`, an `sf` dataframe with `$grid_id` column (primary key) and the specific polygon geometry of each hexagon;
+    -   `bus_stop_sf`, an `sf` dataframe with the `$BUS_STOP_N` (primary key) and the point geometry of each bus stop;
+    -   `odbus_filtered`, a `tibble` dataframe with the `$ORIGIN_PT_CODE` (primary key) column and the trip details for each of the four peak periods of interest.
+
+### 1.6.1 `bus_stop_hexgrid_id`: Identify Hexagon `grid_id` For Each Bus Stop
+
+-   First, we combine `hexagon_sf` with `sg_bus_stop_sf` ;
+    -   We use `st_intersection` to combine the dataframes such that each row of `sg_bus_stop_sf` has an associated `grid_id`;
+    -   We use `select()` to filter the resultant `bus_stop_hexgrid_id` dataframe to only `$grid_id` and `$BUS_STOP_N` columns, and use `st_drop_geometry()` to convert into a simple dataframe with just two columns:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+bus_stop_hexgrid_id <- st_intersection(bus_stop_sf, hexagon_sf) %>%
+  select(BUS_STOP_N, grid_id) %>%
+  st_drop_geometry()
+
+cat("\nNumber of bus stops\t:", length(unique(bus_stop_hexgrid_id$BUS_STOP_N)))
+cat("\nNumber of hexgrids\t:", length(unique(bus_stop_hexgrid_id$grid_id)))
+
+head(bus_stop_hexgrid_id)
+```
+
+
+-   Let's check if there's any duplicates:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+cat("\nNumber of unique bus stops\t\t:", length(unique(bus_stop_hexgrid_id$BUS_STOP_N)))
+cat("\nNumber of unique hexgrids\t\t: ", length(unique(bus_stop_hexgrid_id$grid_id)))
+cat("\nNumber of hexgrids in hexagon_sf\t: ", length(unique(hexagon_sf$grid_id)))
+
+cat("\n\nPrinting rows with duplicated bus stop values :", bus_stop_hexgrid_id$BUS_STOP_N[duplicated(bus_stop_hexgrid_id$BUS_STOP_N)])
+cat("\n\n(If the above rows are empty, there are no duplicates!)")
+```
+
+
+-   We have confirmed there are no duplicates in `bus_stop_hexgrid_id`.
+
+### 1.6.2 `od_data`: Creating flow data by `$ORIGIN_HEX`, `$DESTIN_HEX`
+
+-   Now we append hexagon code onto `odbus_filtered`. We do this in two steps; first adding the origin hexagon, then destination hexagon.
+-   First, we use `left_join()` to add the hexagon `$grid_id` by `BUS_STOP_N` number;
+    -   We use `rename()` to rename columns, and specify the origin bus stop and origin hexagon grid_id as `ORIGIN_BS` and `ORIGIN_HEX` respectively;
+    -   We create a `duplicate` tibble data.frame to check for duplicate results, and luckily we see an empty tibble
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+od_data <- left_join(odbus_filtered , bus_stop_hexgrid_id,
+            by = c("ORIGIN_PT_CODE" = "BUS_STOP_N")) %>%
+  rename(ORIGIN_BS = ORIGIN_PT_CODE,
+         ORIGIN_HEX = grid_id)
+duplicate <- od_data %>%
+  group_by_all() %>%
+  filter(n()>1) %>%
+  ungroup()
+duplicate
+```
+
+
+-   `duplicate` returns an empty tibble dataframe, confirming we have no duplicate results.
+-   Now we repeat the step, appending the destination hexagon grid_id as `$DESTIN_HEX` and once again checking for duplicates:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+od_data <- left_join(od_data , bus_stop_hexgrid_id,
+            by = c("DESTINATION_PT_CODE" = "BUS_STOP_N")) %>%
+  rename(DESTIN_BS = DESTINATION_PT_CODE,
+         DESTIN_HEX = grid_id)
+duplicate <- od_data %>%
+  group_by_all() %>%
+  filter(n()>1) %>%
+  ungroup()
+duplicate
+
+```
+
+
+-   Once again, we have an empty tibble.
+-   Finally, we now create the final version of our flow dataset.
+    -   Just to be safe, we perform a step to remove duplicates using `unique()`
+    -   `drop_na()` removes bus stops for which we have no info. It turns out there are bus stop numbers outside our bus stop dataset, like 03361, 03549, 03579, 59009;
+        -   Some of these may be new bus stops, like [03361](https://www.transitlink.com.sg/eservice/eguide/bscode_idx.php?bs_code=03361), Gardens by the Bay Stn Exit 2, and [03549](https://www.transitlink.com.sg/eservice/eguide/bscode_idx.php?bs_code=03549)
+    -   We use `group_by()` to combine rows with the same `$ORIGIN_HEX` and `$DESTIN_HEX`, and aggregate the number of trips with `summarise()`
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+od_data <- od_data %>%
+  unique() %>%
+  drop_na() %>%
+  group_by(ORIGIN_HEX, DESTIN_HEX) %>%
+  summarise(SUM_TRIPS = sum(TRIPS))
+head(od_data)
+```
+
+
+-   Now we write the output to RDS
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+write_rds(od_data, "data/rds/od_data.rds")
+```
+
+
+## 1.7 `flowLine`: Creating desire lines to visualize O/D of commuter flows
+
+-   From previous, we load `od_data`:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+od_data <- read_rds("data/rds/od_data.rds")
+hexagon_sf <- read_rds("data/rds/hexagon_sf.rds")
+```
+
+
+-   In this study, our focus is on interzonal flow, so we remove intrazonal flows with the below;
+    -   We use square bracket indexing `[]` to select only specific rows, and leave the columns blank after the `,`
+    -   We select only rows where the `$ORIGIN_HEX` is equival to `$DESTIN_HEX`, i.e. intrazonal flows:
+-   We use `summary()` to take a quick peek at the resultant interzonal flow dataset:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+od_flow_data <- od_data[od_data$ORIGIN_HEX!=od_data$DESTIN_HEX,]
+summary(od_flow_data$SUM_TRIPS)
+```
+
+
+-   We see there is tremendous right skew in our dataset, going from 1 trip to 77350 trips during the peak period!
+    -   The median (35) and the third quartile (159) are 2 orders of magnitude smaller than the maximum!
+-   We perform a series of quick visualizations to observe the disparity, using `ggplot`. We give a quick explanation, as this is not **ISSS608 Visual Analytics & Applications**;
+    -   We use `geom_point()` to create a scatterplot to visualize the distribution of `$SUM_TRIPS`
+    -   We use `geom_histogram()` to create a histogram, using `seq()` to customize the bins for the histogram
+    -   To allow comparison between the three plots, we use `geom_vline()` with the argument "`xintercept = 1000`" to draw a red vertical line. Even though the graphs are on three different scales, we can use the red line as a visual 'threshold' reference for 1000 trips.
+-   This is where we use the `patchwork` package, as it allows us to position the subplots without writing too much syntax. This is the beauty of R packages, indeed.
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+
+lplot <-  ggplot(data = od_flow_data, aes(x=SUM_TRIPS, y=ORIGIN_HEX)) +
+          geom_point() +
+          labs(title = "Scatterplot: Distribution of Bus Trips by Origin Hex",
+               x = "ORIGIN_HEX",
+               y = "SUM_TRIPS") + 
+          geom_vline(xintercept = 1000, colour="red")
+
+rplot1 <- ggplot(data = od_flow_data, 
+                aes(x=SUM_TRIPS)) +
+          labs(title = "Histogram of Trips [0-20,000]",
+               x = "ORIGIN_HEX",
+               y = "(truncated) SUM_TRIPS") +
+          geom_histogram(breaks=seq(0, 20000, by = 1000)) + 
+          geom_vline(xintercept = 1000, colour="red")
+
+rplot2 <- ggplot(data = od_flow_data, 
+                aes(x=SUM_TRIPS)) +
+          labs(title = "Histogram of Trips [0-2,000]",
+               x = "ORIGIN_HEX",
+               y = "(truncated) SUM_TRIPS") +
+          geom_histogram(breaks=seq(0, 2000, by = 250)) + 
+          geom_vline(xintercept = 1000, colour="red")
+
+# Here is where we use the patchwork syntax
+# As opposed to fiddling around with ggarrange
+lplot / (rplot1 + rplot2)
+```
+
+
+-   Now, we convert the flow data to `SpatialLinesDataFrame` from `stplanr`
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+flowLine <- od2line(flow = od_flow_data, 
+                    zones = hexagon_sf,
+                    zone_code = "grid_id")
+flowLine
+```
+
+
+# 2. Geospatial Visualization / Geospatial Data Science
+
+::: callout-important
+## **Q:** Display the O-D flows of the passenger trips by using appropriate geovisualisation methods (not more than 5 maps).
+:::
+
+## 2.1 Map 1: O-D Flows Over 1,000 trips
+
+-   From Section 1.7, we know that most of the flow lines have 1000 or fewer trips (63,342 out of 67,737, in fact);
+-   Therefore, we will avoid plotting `flowLine` directly, as it is extremely visually noisy;
+    -   With 67,737 flow lines, the map will simply be covered in overlapping black lines and have no visual information value.
+-   Instead, we choose to focus on the high-traffic flow lines with \>1000 trips;
+    -   With `mpsz_sf` and `hexagon_sf` as base, we use `tm_lines()` to plot `flowLine`
+    -   We define custom breaks and use both "`palette`" and "`scale`" arguments to add colour and thickness to flow lines for visual scale
+
+
+```{r}
+#| eval: false
+custom_palette <- c('#dec060','#d73027','#72001a', '#313695')
+tmap_mode("view")
+tm_basemap(providers$OneMapSG.Grey) +
+tm_shape(hexagon_sf) +
+  tm_polygons(alpha = 0.5) +
+flowLine %>%  
+  filter(SUM_TRIPS >= 1000) %>%  
+  tm_shape() +
+  tm_lines(col = "SUM_TRIPS",
+           lwd = "SUM_TRIPS",
+           palette = custom_palette,
+           style = "fixed",
+           breaks = c(1000, 10000, 20000, 50000, 80000),
+           scale = c(0.1, 1, 2, 4, 8, 12),
+           n = 6,
+           alpha = 0.8) + 
+tm_view(set.zoom.limits = c(11, 13))
+tmap_mode("plot")
+```
+
+
+### 2.1.1 Map 1 Commentary of O-D Flows Over 1,000 trips
+
+-   **Major Trips** We see three thick purple lines;
+    -   Two are in the west, around Jurong West/Choa Chu Kang areas, which may reflect key transport nodes for residential and industrial zones around that part of the island.
+    -   In the north, the purple line points towards Woodlands Checkpoint/Causeawy, for commuters crossing into Malaysia. On that note,
+-   **Longest Trips** There are some exceptionally long lines from the East (Changi, Tampines, Pasir Ris) and Northeast (Punggol, Sengkang) areas towards the Woodlands Area.
+-   **Most Trips** Note the pattern of thin yellow-orange lines; they approximate the underlying MRT lines. Although we have filtered \~93% of the trips, we see that most of the flow lines between 1000-10,000 trips reflect connections made by MRT lines.
+    -   Indeed, most of the dark orange/red lines connect to MRT stations like Ang Mo Kio, Bishan, and Toa Payoh (in the North) and Boon Lay, Choa Chu Kang and Clementi in the East.
+
+## 2.2 Map 2: Most Most Popular Trip Origin, by Hexagons Grid_ID
+
+-   To visualize the flow better, we can examine the starting points of the trip flows.
+-   We do a quick box-plot to visualize this;
+    -   First, we do a `group_by()` to aggregate trips by `$ORIGIN_HEX` and `SUMMARISE()` the trips
+    -   Then, we perform a `geom_boxplot()` to visualize the distribution of trips.
+    -   We use `geom_point()` and `position_jitter()` to layer a scatterplot on top to visualize the distribution better
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+
+od_flow_data_origin <- od_flow_data %>%
+  group_by(ORIGIN_HEX) %>%
+  summarise(SUM_ORIG_TRIPS = sum(SUM_TRIPS))
+
+ggplot(od_flow_data_origin, aes(x = ORIGIN_HEX, y = SUM_ORIG_TRIPS)) +
+  geom_boxplot(fill = "lightblue", color = "black", outlier.shape = 16, outlier.colour = "red") +
+  geom_point(position = position_jitter(width = 0.2), color = "red", size = .5) +
+  scale_y_log10() +
+  labs(title = "Boxplot of Trips by Origin Hexagon, with Outliers Highlighted",
+       x = "Number of Trips",
+       y = "Value") + coord_flip()
+```
+
+
+-   Note that the x-axis is exponential (We will use this later in our model).
+
+-   Once again, we see the highly right-skewed distribution.
+
+-   We will plot a map of the key hexagons, that is, the hexagons that originate the most trips. The steps are below:
+
+    1.  First, create `orig_hexagon_sf` that summarises the trips by `$ORIGIN_HEX`;
+    2.  Define custom thresholds at 90th / 99th /99.9th percentile;
+    3.  Plot a map using a combination of `tmap` and `leaflet()` with three layers: -`ORI_HEX`, the analytical hexagon layer, coloured by number of trips originated from each hexagon;
+
+    -   `TOP_HEX`, showing the traffic flows from the top 3 hexagons by trips in `ORI_HEX`.
+    -   `TOP_TRIPS`, showing the traffic flows above 10,000 trips from `flowLine` earlier:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+
+# Create custom hexagon sf by origin_hex
+orig_hexagon_sf <- left_join(hexagon_sf, od_flow_data_origin, 
+            by = c("grid_id" = "ORIGIN_HEX")) %>%
+  select(grid_id, 
+         SUM_ORIG_TRIPS, raw_hex_grid) %>%
+  drop_na()
+
+# Define custom thresholds
+orig_trips_q90   <- quantile(orig_hexagon_sf$SUM_ORIG_TRIPS,  0.9)   # 61685
+orig_trips_q99   <- quantile(orig_hexagon_sf$SUM_ORIG_TRIPS,  0.99)  #269698
+orig_trips_q999  <- quantile(orig_hexagon_sf$SUM_ORIG_TRIPS,  0.999) #475873
+custom_origin_breaks <- c(0, orig_trips_q90, orig_trips_q99, orig_trips_q999, Inf)
+
+truncated_palette <- c('#d73027','#72001a', '#313695')
+
+tmap_mode("plot")
+tm_ori_hex <- tm_shape(orig_hexagon_sf, group="ORI_HEX") +
+  tm_polygons(col="SUM_ORIG_TRIPS", palette="YlGnBu", style = "fixed", breaks = custom_origin_breaks, group="ORI_HEX") +
+  
+  tm_shape(filter(flowLine, ORIGIN_HEX %in% c(117, 324, 759)), group="TOP_HEX") +
+  tm_lines(col = "SUM_TRIPS",
+           lwd = "SUM_TRIPS",
+           palette = custom_palette,
+           style = "fixed",
+           breaks = c(0, 10000, 20000, 50000, 80000),
+           scale = c(1, 1.5, 2, 4),
+           n = 4,
+           alpha = 0.8, 
+           legend.lwd.show=FALSE,
+           group="TOP_HEX") +
+  
+  tm_shape(filter(flowLine, SUM_TRIPS >= 10000), group="TOP_TRIPS") +
+  tm_lines(col = "SUM_TRIPS",
+           lwd = "SUM_TRIPS",
+           palette = truncated_palette,
+           style = "fixed",
+           breaks = c(10000, 20000, 50000, 80000),
+           scale = c(2,3,4),
+           n = 3,
+           alpha = 0.8, group="TOP_TRIPS") +
+  
+  tm_layout(legend.position = c("right", "bottom"), title= 'Trip Density by Origin Hex', title.position = c("left", "top")) +
+  tm_view(set.zoom.limits = c(11, 12))
+
+tm_ori_hex %>% 
+  tmap_leaflet() %>%
+  hideGroup(c("TOP_HEX")) %>%
+  addLayersControl(
+    overlayGroups = c("ORI_HEX", "TOP_HEX", "TOP_TRIPS"),
+    options = layersControlOptions(collapsed = FALSE),
+    position = "topleft"
+  )
+```
+
+
+### 2.2.1 Map 2 Commentary of Most Popular Trip Origin, by Hexagons Grid_ID
+
+-   Map 2 contains several overlaid layers; -`ORI_HEX`, our familiar analytical hexagon grid, but colour-coded by the total number of trips originating from that hexagon. We use a 90%/99%/99.9% scale to focus on the hexagons originating the highest traffic.
+    -   `TOP_HEX`, show the traffic flows from the top 3 hexagons by trips in `ORI_HEX`.
+    -   `TOP_TRIPS`, shows the top O/D flows in `flowLine`.
+-   **MRT Stations as Traffic Origins** The three hexagons in `TOP_HEX` correspond to Boon Lay, Woodlands, and Tampines MRT stations, which are also bus interchanges and traffic hubs. This gives a hint for modelling later as to propulsiveness factors.
+-   **Short Trips from Top Hexagons** Trips from the top hexagons tend to be shorter trips around the area, supporting the previous "traffic hub" statement. The one corollary appears to be a long line from Tampines to Woodlands, likely indicating a shuttle bus or Causeway traffic.
+    -   Indeed, many of the major popular trips in `TOP_TRIPS` appear to shorter (1-2 hexagon) trips from MRT stations.
+-   **CBD** Disregarding the yellow hexagons (i.e. below 90th percentile), the top trafficked hexagons appear to be scattered along the CBD or at major MRT stations near residential/industrial zones.
+
+## 2.3 Map 3: Most Most Popular Trip Destination, by Hexagons Grid_ID
+
+-   We follow similar steps to Section 2.2 to create the corresponding map by `$DESTIN_HEX`
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+od_flow_data_destin <- od_flow_data %>%
+  group_by(DESTIN_HEX) %>%
+  summarise(SUM_DEST_TRIPS = sum(SUM_TRIPS))
+
+
+dest_hexagon_sf <- left_join(hexagon_sf, od_flow_data_destin, 
+            by = c("grid_id" = "DESTIN_HEX")) %>%
+  select(grid_id, 
+         SUM_DEST_TRIPS, raw_hex_grid) %>%
+  drop_na() 
+
+
+dest_trips_q90   <- quantile(dest_hexagon_sf$SUM_DEST_TRIPS,  0.9)   # 75836
+dest_trips_q99   <- quantile(dest_hexagon_sf$SUM_DEST_TRIPS,  0.99)  #193967
+dest_trips_q999  <- quantile(dest_hexagon_sf$SUM_DEST_TRIPS,  0.999) #305409
+custom_destin_breaks <- c(0, dest_trips_q90, dest_trips_q99, dest_trips_q999, Inf)
+
+# tmap_mode("plot")
+# tm_shape(mpsz_sf) +
+#   tm_polygons() +
+# tm_shape(dest_hexagon_sf) +
+#   tm_polygons(col="SUM_DEST_TRIPS", palette="YlOrRd", style = "fixed", breaks = custom_origin_breaks)
+# 
+# dest_hexagon_sf[dest_hexagon_sf$SUM_DEST_TRIPS > 260000,]
+
+tmap_mode("plot")
+tm_des_hex <- tm_shape(dest_hexagon_sf, group="DES_HEX") +
+  tm_polygons(col="SUM_DEST_TRIPS", palette="YlOrRd", style = "fixed", breaks = custom_destin_breaks, group="DES_HEX") +
+  
+  tm_shape(filter(flowLine, DESTIN_HEX %in% c(117, 248, 324, 759)), group="TOP_DHEX") +
+  tm_lines(col = "SUM_TRIPS",
+           lwd = "SUM_TRIPS",
+           palette = custom_palette,
+           style = "fixed",
+           breaks = c(0, 10000, 20000, 50000, 80000),
+           scale = c(1, 1.5, 2, 4),
+           n = 4,
+           alpha = 0.8, 
+           legend.lwd.show=FALSE,
+           group="TOP_DHEX") +
+  
+  tm_shape(filter(flowLine, SUM_TRIPS >= 10000), group="TOP_DTRIPS") +
+  tm_lines(col = "SUM_TRIPS",
+           lwd = "SUM_TRIPS",
+           palette = truncated_palette,
+           style = "fixed",
+           breaks = c(10000, 20000, 50000, 80000),
+           scale = c(2,3,4),
+           n = 3,
+           alpha = 0.8, group="TOP_DTRIPS") +
+  
+  tm_layout(legend.position = c("right", "bottom"), title= 'Trip Density by Destination Hex', title.position = c("left", "top")) +
+  tm_view(set.zoom.limits = c(11, 12))
+
+tm_des_hex %>% 
+  tmap_leaflet() %>%
+  hideGroup(c("TOP_DHEX")) %>%
+  addLayersControl(
+    overlayGroups = c("DES_HEX", "TOP_DHEX", "TOP_DTRIPS"),
+    options = layersControlOptions(collapsed = FALSE),
+    position = "topleft"
+  )
+```
+
+
+### 2.3.1 Map 3 Commentary of Most Popular Trip Destination, by Hexagons Grid_ID
+
+-   Map 3, as before, contains several overlaid layers; -`DES_HEX`, analytical hexagon grid colour-coded by the total number of trips arriving to that hexagon. We use a 90%/99%/99.9% scale to focus on the hexagons originating the highest traffic, and we see that
+    -   `TOP_DHEX`, show the traffic flows from the top 4 hexagons by trips in `DES_HEX`.
+    -   `TOP_DTRIPS`, shows the top O/D flows in `flowLine`.
+-   **Similar Traffic Hubs** We see many similarities to the Origin-Hex map; many of the top hexes are near MRT stations, and the Boon Lay-Woodlands-Tampines trifecta once again rule as the top traffic hubs.
+-   **Different, Dispersed Distribution** Unlike the map in Section 2.2, however, we don't see the CBD as the main destination hexes. The distribution of the 90th/99th/99.9th percentile has also shifted, suggesting a more even/less skewed distribution. This suggests that the movement pattern is dispersing; people are spreading out from major areas of work and commerce, back home or towards residential areas.
+
+## 2.4 Map 4 Comparing Top Origin/Destination Hexagons:
+
+-   We perform our `leaflet` trick one last time, overlapping `ORI_HEX` and `DES_HEX` from the last 2 maps to compare the top hexes by origin/destination:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+tmap_mode("plot")
+tm_ori_des <- tm_shape(orig_hexagon_sf, group="ORI_HEX") +
+  tm_polygons(col="SUM_ORIG_TRIPS", palette="YlGnBu", style = "fixed", alpha = 0.5, breaks = custom_origin_breaks, group="ORI_HEX") +
+  
+  tm_shape(dest_hexagon_sf, group="DES_HEX") +
+  tm_polygons(col="SUM_DEST_TRIPS", palette="YlOrRd", style = "fixed", alpha = 0.5, breaks = custom_destin_breaks, group="DES_HEX") +
+  
+  tm_layout(legend.position = c("right", "bottom"), title= 'Comparing Trip Density by ORI/DES Hex', title.position = c("left", "top")) +
+  tm_view(set.zoom.limits = c(11, 12))
+
+tm_ori_des %>% 
+  tmap_leaflet() %>%
+  addLayersControl(
+    overlayGroups = c("ORI_HEX", "DES_HEX"),
+    options = layersControlOptions(collapsed = FALSE),
+    position = "topleft"
+  )
+```
+
+
+### 2.4.1 Map 4 Commentary of Most Popular Trip Destination, by Hexagons Grid_ID
+
+-   **Similar Traffic Hubs** When overlaid, the pattern becomes clearer; hexagons that originate most bus trips also tend to be the destination for most bus trips. The distribution pattern is subtly different, but not by much.
+-   This also highlights a major weakness of our analysis: Bus Trip data is insufficient, and many bus trips tend to start/end near MRT stations. For future study, we should combine MRT and bus trip data for a comprehensive picture of where commuters are actually arriving from/going to.
+-   Current data only suggests that people do in fact make use of the existing public transport infrastructure.
+
+# 3. Geospatial Data Science II: Data Preparation for Spatial Interaction Models
+
+::: callout-important
+## **Q:** Compute a distance matrix by using the analytical hexagon data derived earlier.
+:::
+
+## 3.1 Computing Distance Matrix
+
+-   To compute a distance matrix, we first start with our trusty `hexagon_sf`
+    -   We use `spDists()` of `sp` package to calculate centroid distances, passing "`longlat=FALSE`" to generate Euclidean distance (since we are not using WGS84 projection)
+        -   However, this requires an `sp` dataframe, so we create `hexagon_sp` first using `as(..., "Spatial)` to convert types
+-   The output `distance_matrix` is an 831x831 matrix (as we have 831 unique hexagons), so we preview only the first 10 rows and columns using `head()`
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+hexagon_sf <- read_rds("data/rds/hexagon_sf.rds")
+
+hexagon_sp <- as(hexagon_sf, "Spatial")
+distance_matrix <- spDists(hexagon_sp, 
+                longlat = FALSE)
+head(distance_matrix, n=c(10, 10))
+# dim(distance_matrix)
+
+```
+
+
+-   We note two details here that suggest we're on the right track;
+    -   Diagonals equal zero, which make sense, as the distance between a hexagon's centroid and itself is zero;
+    -   750m between hexagons 1 & 2, which are adjacent.
+-   We now use `melt()` to convert our distance matrix into `dist_pair`, a long data table of distance pairs between hexagon centroids. This is needed for spatial interaction modelling later;
+    -   We use `rename()` to name our column headers
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+distPair <- melt(distance_matrix) %>%
+  rename(dist = value
+         , grid_id_from = Var1
+         , grid_id_to = Var2)
+head(distPair, 10)
+```
+
+
+-   Note that we have intra-zonal distances/zero-distances, which may cause issues later. Let's check the minimum distances:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+distPair %>%
+  filter(dist > 0) %>%
+  summary()
+```
+
+
+-   The minimum distance between hexagons is still 750, which is correct; the apothem distance is 375m, which means double that is centroid-to-centroid distance of 750m.
+-   To avoid issues with zero-value distances below, we will arbritrarily convert intrazonal distance to 50m. However, we note that having removed intrazonal flows, we should not encounter this error later on.
+
+
+```{r}
+#| eval: false
+distPair$dist <- ifelse(distPair$dist == 0,
+                        50, distPair$dist)
+distPair %>%
+  summary()
+```
+
+
+-   Having convinced ourselves that the minimum distance is nonzero (50m), we write this to RDS and continue our data preparation work:
+
+
+```{r}
+#| eval: false
+write_rds(distPair, "data/rds/distPair.rds") 
+```
+
+
+## 3.2 Prepare Intrazonal OD flow data
+
+-   Our `od_data` comprises `$ORIGIN_HEX`, `$DESTIN_HEX`, and `$SUM_TRIPS` columns; we now want to add distance information by merging with `distPair`;
+    -   First, we create a column `$od_no_intra` using `ifelse()` to output 0 for intrazonal flows (e.g. `$ORIGIN_HEX` == `$DESTIN_HEX`) and `$SUM_TRIPS` otherwise;
+    -   We then join `distPair` to `od_data` by matching origin and destination
+-   Finally, we perform a quick glimpse using `$od_no_intra` to view that our filter for intrazonal flows is correct:
+
+
+```{r}
+#| eval: false
+
+
+od_data$od_no_intra <- ifelse(
+  od_data$ORIGIN_HEX == od_data$DESTIN_HEX, 
+  0, od_data$SUM_TRIPS)
+# od_data$offset <- ifelse(
+#   od_data$ORIGIN_HEX == od_data$DESTIN_HEX, 
+#   0.000001, 1)
+
+# od_data$ORIGIN_HEX <- as.factor(od_data$ORIGIN_HEX)
+# od_data$DESTIN_HEX <- as.factor(od_data$DESTIN_HEX)
+# 
+od_data_distpair <- od_data %>%
+  left_join (distPair,
+             by = c("ORIGIN_HEX" = "grid_id_from",
+                    "DESTIN_HEX" = "grid_id_to"))
+od_data_distpair[od_data_distpair$od_no_intra == 0, ]
+```
+
+
+-   Now, we create `inter_zonal_flow` by filtering out the intrazonal flows we have seen, and perform a quick histogram visualization usingggplot:
+
+
+```{r}
+#| eval: false
+inter_zonal_flow <- od_data_distpair %>%
+  filter(od_no_intra > 0) %>%
+  select(ORIGIN_HEX, DESTIN_HEX, SUM_TRIPS, dist)
+
+ggplot(data = inter_zonal_flow,
+       aes(x = dist,
+           y = SUM_TRIPS)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Number of Trips by Trip Distance") +
+  xlab("Distance of Trips") +
+  ylab("Number of Trips")
+
+```
+
+
+-   We see that once again, the data is extremely right-skewed and exhibits no visible patter. Taking a cue from earlier visualizations however, we can use the log scale;
+    -   We use `geom_smooth()` to draw a smoothed line to observe the pattern, and indeed we see a negative correlation between the length (distance) of the trips and the number of trips.
+
+
+```{r}
+#| eval: false
+ggplot(data = inter_zonal_flow,
+       aes(x = log(dist),
+           y = log(SUM_TRIPS))) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  ggtitle("Scatter Plot Number of Trips by Trip Distance, log scale") +
+  xlab("log(Distance of Trips)") +
+  ylab("log(Number of Trips)")
+```
+
+
+-   We perform a quick check to ensure there are no zero values before writing to RDS.
+
+
+```{r}
+#| eval: false
+write_rds(inter_zonal_flow, "data/rds/inter_zonal_flow.rds")
+summary(inter_zonal_flow)
+```
+
+
+## 3.3 Prepare Intrazonal OD flow data
+
+-   unconstrained
+
+
+```{r}
+#| eval: false
+# uncSIM <- glm(formula = SUM_TRIPS ~ 
+#                 log(dist),
+#               family = poisson(link = "log"),
+#               data = od_data_distpair,
+#               na.action = na.exclude)
+# uncSIM
+
+```
+
+
+### 1.6.2 Identify Bus Trip Details For Each Hexagon `grid_id`
+
+-   Here, we again use multiple steps to generate bus trip details for each hexagon `grid_id`;
+    1.  We use `left_join()` to add the `grid_id` to each row of `odbus_filtered`, since each row has a unique single bus stop ID (i.e. `$BUS_STOP_N`);
+    2.  We use `select()` to retain only the `grid_id` and the four peak-trips columns;
+    3.  We combine `group_by()` and `summarise()` to aggregate the trips for each peak by `grid_id`.
+-   Finally, we use `head()` to preview the `grid_trips_df` tibble dataframe.
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+# colnames(odbus_filtered)
+# 
+# grid_trips_df <- left_join(odbus_filtered, bus_stop_hexgrid_id, 
+#             by = c("ORIGIN_PT_CODE" = "BUS_STOP_N")) %>%
+#   select(grid_id, 
+#          TRIPS)  %>%
+#   group_by(grid_id) %>%
+#   summarise(
+#     TRIPS = sum(TRIPS)
+#     )
+# head(grid_trips_df)
+```
+
+
+### 1.6.3 Combine Bus Trip Details Back Into `hexagon_sf`
+
+-   Finally, it's time to recombine bus trip data back into `hexagon_sf`;
+    -   We use `left_join` on `$grid_id` to add trip data back into hexagon_sf;
+    -   We add a failsafe `mutate()` to replace any "NA" values for the columns.
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+# hexagon_sf <- left_join(hexagon_sf, grid_trips_df, 
+#             by = 'grid_id' ) %>%
+#   mutate(
+#     TRIPS = ifelse(is.na(TRIPS), 0, TRIPS)
+#     )
+# 
+# head(hexagon_sf)
+
+```
+
+
+## 1.7 Exploratory Data Analysis Of Bus Trips, Across Peak Periods, By Hexagons
+
+-   For `ggplot`, we need data in long format, so we can use `gather()` on `grid_trips_df` from Section 1.6.2 to pivot this;
+-   We then pipe this into a `geom_boxplot()` for an exploratory look:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+# 
+# custom_breaks <- c(seq(0, 50000, by = 5000), 565000)
+# 
+# lplot <- ggplot(data = hexagon_sf, aes(x=TRIPS, y=grid_id)) +
+#   geom_point()  +
+#   labs(title = "Histogram with Different Fill Colors",
+#        x = "Value",
+#        y = "Frequency") + 
+#   geom_vline(xintercept = 20000, colour="red")
+# rplot <- ggplot(data = hexagon_sf[hexagon_sf$TRIPS <50001, ]
+#                 , aes(x=TRIPS)) +
+# geom_histogram() + #breaks=seq(0, 50000, by = 5000) 
+#   geom_vline(xintercept = 20000, colour="red")
+# 
+# lplot / rplot
+# 
+# # str(hexagon_sf$TRIPS)
+# 
+# 
+# # gather(grid_trips_df, key = "Peak", value = "Trips", -grid_id) %>%
+# #   ggplot( aes(x=grid_id, y='TRIPS', fill=grid_id)) +
+# #   geom_boxplot() + 
+# #   ggtitle("Boxplot: Trips over peak periods, 2023-Oct data") +
+# #     xlab("") + 
+# #     theme(
+# #       legend.position="none"
+# #       ) +
+# #   coord_flip()
+```
+
+
+::: callout-tip
+We also observe that number of trips for Weekday Morning & Weekday Afternoon seems to be larger than Weekend Morning and Weekend Evening peak trips. This is also confirmed by the figure in the next section.
+
+This means that we will have to consider Weekday and Weekend peaks on different scales.
+:::
+
+-   This is an exceptionally ugly plot, but it shows an important point: there is some serious right skew in our dataset;
+-   Clearly, there are some hexagons with exceptionally high trips compared to the rest of the hexagons But, could this be because some hexagons have up to 11 bus stops, while others have 1 or 2?
+-   We do a quick scatter plot based on `$n_bus_stops` to verify this:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+# hexagon_sf %>% 
+#   st_drop_geometry() %>% 
+#   pivot_longer(cols = starts_with("WEEK"),
+#                names_to = "PEAK", values_to = "TRIPS") %>%
+#   ggplot( aes(x=TRIPS, y=n_bus_stops, color=PEAK, shape=PEAK)) +
+#   geom_point(size=2) +
+#   ggtitle("Scatterplot: Trips over peak periods by number of bus stops per hexagon, 2023-Oct data") +
+#     theme(legend.position=c(.85, .15),
+#           legend.background = element_rect(fill = "transparent"),
+#           legend.key.size = unit(0.5, "cm"),  
+#           legend.text = element_text(size = 6),
+#           legend.title = element_text(size = 8)
+#     ) 
+```
+
+
+-   Surprising results from our plot! If we consider those with \> 100,000 trips as outliers, most of them come from hexagons with between 4-8 bus stops;
+-   There is some correlation between number of bus stops and high numbers of trips, but a stronger factor is peak time; Weekday Morning peak trips, followed by Weekday Afternoon peak trips, contribute to the largest outliers.
+
+::: callout-tip
+I note that these visualizations only scrape the surface of understanding the data. However, this is not the focus of our study; we do these quick visualizations only to provide better context for our study.
+:::
+
+## 3.4 Preparing three propulsive and three attractiveness variables
+
+::: callout-important
+## **Q:** Assemble at least three propulsive and three attractiveness variables by using aspatial and geospatial from publicly available sources.
+:::
+
+-   Over the next few sections, we will assemble the following explanatory variables for our spatial interaction model. We also note which section they will be handled in (if not stated, they will be addressed in Section 3.4A):
+
+-   Propulsive variables: 
+    -   *business_count*, *finserv_count*: We assume in the weekday evenings, people will be leaving their offices or have concluded their businesses from financial services, which are often also closed in the evenings.
+    -   *MRT_EXIT_COUNT*: (Section 3.4C) Based on above Map 2 (Section 2.2, 2.3) we see that most trips appear to originate from MRT stations. In all likelihood, MRT Stations can be both propulsive and attractive, but we choose to class it here, explaining as people using MRTs to transit to the desired leisure are.
+
+-   Attractive variables:
+    -   *leisure_count*, *fnb_count*, *retail_count*, *entertainment_count*: Using data from Prof Kam, we assume people will leave their workplace to seek out food, entertainment, leisure, or retail shops. 
+    -   *hdb_count* (Section 3.4B) Alternatively, people may be heading home after work. 
+    
+### 3.4A Assembling Various Explanatory Variables
+
+- Many of the below geospatial datasets have been prepared by Prof Kam, so the data is already cleaned, and the steps are largely uniform;
+  1. Use `st_read()` to read in the geospatial dataset, and use `st_transform()` to ensure it uses SVY21/CRS3414
+  2. Create a new column using `lengths(st_intersects())` to count the number of such points in each hexagon grid.
+- Here are the data preparation steps:
+
+::: panel-tabset
+
+## Business
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+
+hexagon_sf <- read_rds("data/rds/hexagon_sf.rds")
+business_sf <- st_read(dsn = "data/geospatial",
+                      layer = "Business") %>%
+  st_transform(crs = 3414)
+
+hexagon_sf$`BUSINESS_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, business_sf))
+summary(hexagon_sf$BUSINESS_COUNT)
+
+```
+
+- Quick Visualization:
+
+
+```{r}
+#| eval: false
+tmap_mode("plot")
+tm_shape(mpsz_sf) + tm_polygons() +
+ tm_shape(hexagon_sf) +
+ tm_borders() + 
+ tm_fill(col = "BUSINESS_COUNT", 
+         palette = "Greys",
+         style = "jenks") 
+```
+
+
+## Entertainment
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+entertn_sf <- st_read(dsn = "data/geospatial",
+                      layer = "entertn") %>%
+  st_transform(crs = 3414)
+# st_crs(entertn_sf)
+
+hexagon_sf$`ENTERTAIN_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, entertn_sf))
+summary(hexagon_sf$ENTERTAIN_COUNT)
+```
+
+- Quick Visualization:
+
+
+```{r}
+#| eval: false
+tmap_mode("plot")
+tm_shape(mpsz_sf) + tm_polygons() +
+ tm_shape(hexagon_sf) +
+ tm_borders() + 
+ tm_fill(col = "ENTERTAIN_COUNT", 
+         palette = "Blues",
+         style = "jenks") 
+```
+
+
+## Finserv
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+finserv_sf <- st_read(dsn = "data/geospatial",
+                      layer = "FinServ") %>%
+  st_transform(crs = 3414)
+# st_crs(finserv_sf)
+
+
+hexagon_sf$`FINSERV_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, finserv_sf))
+summary(hexagon_sf$FINSERV_COUNT)
+```
+
+- Quick Visualization:
+
+
+```{r}
+#| eval: false
+tmap_mode("plot")
+tm_shape(mpsz_sf) + tm_polygons() +
+ tm_shape(hexagon_sf) +
+ tm_borders() + 
+ tm_fill(col = "FINSERV_COUNT", 
+         palette = "Greens",
+         style = "jenks") 
+```
+
+
+## FNB
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+fnb_sf <- st_read(dsn = "data/geospatial",
+                      layer = "F&B") %>%
+  st_transform(crs = 3414)
+# st_crs(fnb_sf)
+
+hexagon_sf$`FNB_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, fnb_sf))
+summary(hexagon_sf$FNB_COUNT)
+```
+
+
+- Quick Visualization:
+
+
+```{r}
+#| eval: false
+tmap_mode("plot")
+tm_shape(mpsz_sf) + tm_polygons() +
+ tm_shape(hexagon_sf) +
+ tm_borders() + 
+ tm_fill(col = "FNB_COUNT", 
+         palette = "Reds",
+         style = "jenks") 
+```
+
+
+## Leisure
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+leisure_sf <- st_read(dsn = "data/geospatial",
+                      layer = "Liesure&Recreation") %>%
+  st_transform(crs = 3414)
+# st_crs(leisure_sf)
+
+
+hexagon_sf$`LEISURE_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, leisure_sf))
+summary(hexagon_sf$LEISURE_COUNT)
+```
+
+- Quick Visualization:
+
+
+```{r}
+#| eval: false
+tmap_mode("plot")
+tm_shape(mpsz_sf) + tm_polygons() +
+ tm_shape(hexagon_sf) +
+ tm_borders() + 
+ tm_fill(col = "LEISURE_COUNT", 
+         palette = "Purples",
+         style = "jenks") 
+```
+
+
+
+## Retail
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+retail_sf <- st_read(dsn = "data/geospatial",
+                      layer = "Retails") %>%
+  st_transform(crs = 3414)
+# st_crs(retail_sf)
+
+
+hexagon_sf$`RETAIL_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, retail_sf))
+summary(hexagon_sf$RETAIL_COUNT)
+```
+
+
+- Quick Visualization:
+
+
+```{r}
+#| eval: false
+tmap_mode("plot")
+tm_shape(mpsz_sf) + tm_polygons() +
+ tm_shape(hexagon_sf) +
+ tm_borders() + 
+ tm_fill(col = "RETAIL_COUNT", 
+         palette = "Oranges",
+         style = "jenks") 
+```
+
+
+:::
+
+- Originally, I had prepared a `leaflet` plot with multiple layers that combined all six preceding plots that you could thumb through. However, R/Quarto took too long to render and often crashed, so below is the code snippet to render the plot for your gratification, if you so enjoy.
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+# tmap_mode("view")
+# 
+# tm <- tm_shape(hexagon_sf, group="BUSINESS_COUNT") +
+#  tm_borders(group="BUSINESS_COUNT") + 
+#  tm_fill(col = "BUSINESS_COUNT", 
+#          palette = "Greys",
+#          style = "jenks",
+#          group="BUSINESS_COUNT") + 
+#   
+#  tm_shape(hexagon_sf, group="ENTERTAIN_COUNT") +
+#  tm_borders(group="ENTERTAIN_COUNT") + 
+#  tm_fill(col = "ENTERTAIN_COUNT", 
+#          palette = "Blues",
+#          style = "jenks",
+#          group="ENTERTAIN_COUNT") + 
+#   
+#  tm_shape(hexagon_sf, group="FINSERV_COUNT") +
+#  tm_borders(group="FINSERV_COUNT") + 
+#  tm_fill(col = "FINSERV_COUNT", 
+#          palette = "Greens",
+#          style = "jenks",
+#          group="FINSERV_COUNT") + 
+#   
+#  tm_shape(hexagon_sf, group="FNB_COUNT") +
+#  tm_borders(group="FNB_COUNT") + 
+#  tm_fill(col = "FNB_COUNT", 
+#          palette = "Reds",
+#          style = "jenks",
+#          group="FNB_COUNT") + 
+#   
+#  tm_shape(hexagon_sf, group="LEISURE_COUNT") +
+#  tm_borders(group="LEISURE_COUNT") + 
+#  tm_fill(col = "LEISURE_COUNT", 
+#          palette = "Purples",
+#          style = "jenks",
+#          group="LEISURE_COUNT") + 
+# 
+#    tm_shape(hexagon_sf, group="RETAIL_COUNT ") +
+#  tm_borders(group="RETAIL_COUNT ") + 
+#  tm_fill(col = "RETAIL_COUNT", 
+#          palette = "Oranges",
+#          style = "jenks",
+#          group="RETAIL_COUNT")
+# 
+# 
+# tm %>% 
+#   tmap_leaflet() %>%
+#   hideGroup(c("FINSERV_COUNT", "FNB_COUNT",
+#                       "ENTERTAIN_COUNT", "LEISURE_COUNT", "RETAIL_COUNT")) %>%
+#   addLayersControl(
+#     overlayGroups = c("BUSINESS_COUNT", "ENTERTAIN_COUNT", "FINSERV_COUNT", 
+#                       "FNB_COUNT", "LEISURE_COUNT", "RETAIL_COUNT"),
+#     options = layersControlOptions(collapsed = FALSE),
+#     position = "topleft"
+#   )
+```
+
+
+
+
+## 3.4B MRT Exit Data
+- Here, we have a choice whether to use the geospatial dataset of MRT Train Station Exits data or the dataset of actual MRT Train Station Locations from LTA DataMall.
+- Loading Train Station Exit Data is relatively straightfoward:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+mrt_exit_sf <- st_read(dsn = "data/geospatial",
+                      layer = "Train_Station_Exit_Layer")  %>%
+  st_transform(crs=3414)
+# st_crs(mrt_exit_sf)
+
+
+hexagon_sf$`MRT_EXIT_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, mrt_exit_sf))
+summary(hexagon_sf$MRT_EXIT_COUNT)
+```
+
+- However, attempting to read from LTA's `RapidTransitSystemStation` fails somewhat;
+    -  There is incomplete or broken geometry in LTA's original source file
+    -   use st_make_valid() does not work, so I sourced wdpar::st_repair_geometry [`wdpar source`](https://search.r-project.org/CRAN/refmans/wdpar/html/st_repair_geometry.html), based on [`prepr`](https://github.com/dickoa/prepr) package to repair geometries
+    -   thereafter we need to coerce from EPSG9001 to SVY21 using `st_transform()`
+- Even so, we can compare the difference in the two datasets:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+library(wdpar)
+
+raw_mrt_sf <- st_read(dsn = "data/geospatial",
+                      layer = "RapidTransitSystemStation")
+mrt_sf <- st_repair_geometry(raw_mrt_sf) %>%
+  st_transform(crs=3414)
+st_crs(mrt_sf)
+
+
+tmap_mode("plot")
+# tmap_options(check.and.fix = TRUE)
+tm_shape(mpsz_sf) +
+  tm_polygons() +
+tm_shape(hexagon_sf) +
+  tm_polygons(col = "MRT_EXIT_COUNT", palette = "-Spectral") +
+tm_shape(mrt_sf) +
+  tm_dots(col='red')
+
+```
+
+- We can see that the MRT Stations (red dots) appear largely to correspond with the MRT Exits (coloured, non-blue hexes.) We thus choose to use the MRT_EXIT_COUNT dataset, as it is a more logical interpretation of data flow 
+
+## 3.4C HDB Dataset
+
+- We now draw from the "aspatial" HDB dataset, and use `colnames()` to examine the columns:
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+raw_hdb <- read_csv("data/aspatial/hdb.csv")
+colnames(raw_hdb)
+```
+
+- For our purposes, we need to use `$lat` and `$lng` as geocordinates, and to filter by "`$residential` = Y"
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+raw_hdb <- raw_hdb %>% 
+  filter(residential == "Y") %>%
+  select(
+    lat,
+    lng  )
+hdb_sf <- st_as_sf(raw_hdb,
+                   coords = c("lng", "lat"),
+                   crs = 4326) %>%
+  st_transform(crs = 3414)
+
+
+hexagon_sf$`hdb_COUNT`<- lengths(
+  st_intersects(
+    hexagon_sf, hdb_sf))
+summary(hexagon_sf$hdb_COUNT)
+```
+
+
+- Now we perform a quick visualization:
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+tmap_mode("plot")
+tm_shape(mpsz_sf) +
+  tm_polygons() +
+tm_shape(hexagon_sf) +
+  tm_polygons(col = "hdb_COUNT", palette = "-Spectral")
+```
+
+- Finally, let's write `hexagon_sf` to rds
+
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "show code"
+write_rds(hexagon_sf, "data/rds/hexagon_features.rds")
+```
+
+
+
+# 4. Spatial Interactive Models
+
+- To distinguish our `hexagon_sf` with added variables from the previous `hexagon_sf` used above, we will load and call this one `hex_variables_sf`
+- We read this from rds first:
+
+
+```{r}
+inter_zonal_flow <- read_rds("data/rds/inter_zonal_flow.rds")
+hex_variables_sf <- read_rds("data/rds/hexagon_features.rds")
+```
+
+
+### 4.1.P Propulsive Variables Count
+- Now, we will need to combine our flow data with the origin/destination hexagons as in `inter_zonal_flow`;
+  1. First, we create `prop_df`, an aspatial dataframe with only propulsiveness variables;
+      - We `select()` only the `$grid_id` identifier columns with counts for `$BUSINESS_COUNT`, `$FINSERV_COUNT` and `$MRT_EXIT_COUNT`,
+      - We use `st_drop_geometry()` to remove the geospatial data
+  2. Next, we `left_join()` this to our `inter_zonal_flow` dataset
+      - Since these are propulsive variables, we join this to the `$ORIGIN_HEX`
+      - For ease of reading later, we rename these columns by adding a prefix `P_` for propulsive variables:
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+
+prop_sf <- hex_variables_sf %>%
+  select(grid_id, BUSINESS_COUNT, FINSERV_COUNT, MRT_EXIT_COUNT) %>%
+  st_drop_geometry()
+inter_zonal_flow_prop <- inter_zonal_flow %>%
+  left_join(prop_sf,
+            by = c("ORIGIN_HEX" = "grid_id")) %>%
+  rename(P_MRT_EXIT_COUNT = MRT_EXIT_COUNT,
+         P_FINSERV_COUNT = FINSERV_COUNT, 
+         P_BUSINESS_COUNT = BUSINESS_COUNT)
+inter_zonal_flow_prop
+```
+
+
+### 3.1.A Attractiveness Variables Count
+
+- Similar to the above, we repeat the step for attractiveness variables by creating `attr_df`;
+      - Repeat to `select()` only the `$grid_id` identifier columns with counts for `$BUSINESS_COUNT`, `$FINSERV_COUNT` and `$MRT_EXIT_COUNT`,
+      - We use `st_drop_geometry()` to remove the geospatial data
+  2. Next, we `left_join()` this to our `inter_zonal_flow` dataset
+      - Since these are propulsive variables, we join this to the `$ORIGIN_HEX`
+      - For ease of reading later, we rename these columns by adding a prefix `P_` for propulsive variables:
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+attr_sf <- hex_variables_sf %>%
+  select(grid_id, ENTERTAIN_COUNT , FNB_COUNT, LEISURE_COUNT, RETAIL_COUNT, hdb_COUNT) %>%
+  st_drop_geometry()
+SIM_data <- inter_zonal_flow_prop %>%
+  left_join(attr_sf,
+            by = c("DESTIN_HEX" = "grid_id")) %>%
+  rename(A_FNB_COUNT = FNB_COUNT, 
+         A_ENTERTAIN_COUNT = ENTERTAIN_COUNT, 
+         A_LEISURE_COUNT = LEISURE_COUNT, 
+         A_RETAIL_COUNT = RETAIL_COUNT)
+SIM_data
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+SIM_data[SIM_data$ORIGIN_HEX==SIM_data$DESTIN_HEX,]
+```
+
+
+-   Check summary
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+summary(SIM_data)
+```
+
+
+-   We will coerce all 0 values to 0.99
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+replace_zeroes_columns <-  c("P_BUSINESS_COUNT", "P_FINSERV_COUNT", "P_MRT_EXIT_COUNT", "A_ENTERTAIN_COUNT", "A_FNB_COUNT", "A_LEISURE_COUNT", "A_RETAIL_COUNT")
+
+# Assuming 'your_data' is your data frame and 'columns_to_update' is a vector of column names
+# Apply a function to replace 0 with 1 in specified columns
+SIM_data[, replace_zeroes_columns] <- apply(SIM_data[, replace_zeroes_columns], 2, function(x) replace(x, x == 0, 0.99))
+
+summary(SIM_data)
+```
+
+
+-   Write to RDS
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+SIM_data$ORIGIN_HEX <- as.factor(SIM_data$ORIGIN_HEX)
+SIM_data$DESTIN_HEX <- as.factor(SIM_data$DESTIN_HEX)
+
+write_rds(SIM_data,
+          "data/rds/SIM_data_tidy.rds")
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+# length(unique(SIM_data$DESTIN_HEX)) #813
+# length(unique(SIM_data$ORIGIN_HEX)) #816
+# 
+# unique_origin_hex <- unique(SIM_data$ORIGIN_HEX)
+# unique_destin_hex <- unique(SIM_data$DESTIN_HEX)
+# unique_origin_hex[!unique(SIM_data$ORIGIN_HEX) %in% unique(SIM_data$DESTIN_HEX)]
+# unique_destin_hex[!unique(SIM_data$DESTIN_HEX) %in% unique(SIM_data$ORIGIN_HEX)]
+```
+
+
+### read SIMData
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+SIM_data <- readRDS("data/rds/SIM_data_tidy.rds")
+SIM_data
+```
+
+
+## 3.0 Defined R-Squared Function
+
+-   Combine Flow data with hexagon sf
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+CalcRSquared <- function(observed,estimated){
+  r <- cor(observed,estimated)
+  R2 <- r^2
+  R2
+}
+
+```
+
+
+## 3.1 Unconstrained Spatial Interaction Model
+
+-   Combine Flow data with hexagon sf
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+# important! change the grid_id to factor/categorical or character field
+# if numeric, treated as continuous variable
+
+uncSIM <- glm(formula = SUM_TRIPS ~ 
+                log(P_BUSINESS_COUNT) + 
+                log(P_MRT_EXIT_COUNT) +
+                log(P_FINSERV_COUNT) + 
+                log(A_ENTERTAIN_COUNT) + 
+                log(A_FNB_COUNT) +
+                log(A_LEISURE_COUNT) + 
+                log(A_RETAIL_COUNT) + 
+                log(dist),
+              family = poisson(link = "log"),
+              data = SIM_data,
+              na.action = na.exclude)
+uncSIM
+
+# SIM_data[which(! complete.cases(SIM_data)), ]
+```
+
+
+## 3.1r UncSIM R-Squared Function
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+CalcRSquared(uncSIM$data$SUM_TRIPS, uncSIM$fitted.values)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+r2_mcfadden(uncSIM)
+
+```
+
+
+## 3.2 Origin Constrained Formula
+
+-   Combine Flow data with hexagon sf
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+options(max.print = 10000)  
+
+orcSIM <- glm(formula = SUM_TRIPS ~ 
+                ORIGIN_HEX +
+                log(A_ENTERTAIN_COUNT) + 
+                log(A_FNB_COUNT) +
+                log(A_LEISURE_COUNT) + 
+                log(A_RETAIL_COUNT) + 
+                log(dist) - 1,
+              family = poisson(link = "log"),
+              data = SIM_data,
+              na.action = na.exclude)
+summary(orcSIM)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+CalcRSquared(orcSIM$data$SUM_TRIPS, orcSIM$fitted.values)
+```
+
+
+## 3.1 Destination Constrained
+
+-   Combine Flow data with hexagon sf
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+
+decSIM <- glm(formula = SUM_TRIPS ~ 
+                  DESTIN_HEX +
+                  log(P_BUSINESS_COUNT) + 
+                  log(P_MRT_EXIT_COUNT) +
+                  log(P_FINSERV_COUNT) +
+                  log(dist) - 1,
+              family = poisson(link = "log"),
+              data = SIM_data,
+              na.action = na.exclude)
+summary(decSIM)
+
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+CalcRSquared(decSIM$data$SUM_TRIPS, decSIM$fitted.values)
+```
+
+
+## 3.1 Doubly constrained
+
+-   Combine Flow data with hexagon sf
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+dbcSIM <- glm(formula = SUM_TRIPS ~ 
+                ORIGIN_HEX +
+                DESTIN_HEX+ 
+                log(dist),
+              family = poisson(link = "log"),
+              data = SIM_data,
+              na.action = na.exclude)
+summary(dbcSIM)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+CalcRSquared(dbcSIM$data$SUM_TRIPS, dbcSIM$fitted.values)
+```
+
+
+## Model Comparison
+
+-   Combine Flow data with hexagon sf
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+model_list <- list(
+  Unconstrained = uncSIM,
+  Origin_Constrained = orcSIM,
+  Destination_Constrained = decSIM,
+  Doubly_Constrained = dbcSIM)
+compare_performance(model_list,
+                    metrics = "RMSE")
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+uncSIM_df <- as.data.frame(uncSIM$fitted.values) %>%
+  round(digits = 0) 
+orcSIM_df <- as.data.frame(orcSIM$fitted.values) %>%
+  round(digits = 0)
+decSIM_df <- as.data.frame(decSIM$fitted.values) %>%
+  round(digits = 0)
+dbcSIM_df <- as.data.frame(dbcSIM$fitted.values) %>%
+  round(digits = 0)
+
+
+
+model_comparison <- SIM_data %>%
+  cbind(
+    uncSIM_df,
+    orcSIM_df,
+    decSIM_df,
+    dbcSIM_df 
+  ) %>%
+  rename(
+    uncTRIPS = "uncSIM$fitted.values",
+    orcTRIPS = "orcSIM$fitted.values",
+    decTRIPS = "decSIM$fitted.values",
+    dbcTRIPS = "dbcSIM$fitted.values" 
+  )
+
+
+
+write_rds(model_comparison, "data/rds/model_comparison")
+model_comparison
+```
+
+
+## create scatterplot
+
+-   create scatterplot
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+orc_p <- ggplot(data = model_comparison,
+                aes(x = orcTRIPS,
+                    y = SUM_TRIPS)) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  coord_cartesian(xlim=c(0,100000),
+                  ylim=c(0,100000))
+
+dbc_p <- ggplot(data = model_comparison,
+                aes(x = dbcTRIPS,
+                    y = SUM_TRIPS)) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  coord_cartesian(xlim=c(0,100000),
+                  ylim=c(0,100000))
+
+
+unc_p <- ggplot(data = model_comparison,
+                aes(x = uncTRIPS,
+                    y = SUM_TRIPS)) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  coord_cartesian(xlim=c(0,100000),
+                  ylim=c(0,100000))
+
+
+dec_p <- ggplot(data = model_comparison,
+                aes(x = decTRIPS,
+                    y = SUM_TRIPS)) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  coord_cartesian(xlim=c(0,100000),
+                  ylim=c(0,100000))
+
+(unc_p + orc_p) / (dec_p + dbc_p)
+```
+
+
+## Model Comparison
+
+-   Combine Flow data with hexagon sf
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+CalcRSquared(decSIM$data$SUM_TRIPS, decSIM$fitted.values)
+```
+
+
+## Model Comparison
+
+-   Combine Flow data with hexagon sf
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+CalcRSquared(decSIM$data$SUM_TRIPS, decSIM$fitted.values)
+```
+
+
+## Model Comparison
+
+-   Combine Flow data with hexagon sf
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "show code"
+CalcRSquared(decSIM$data$SUM_TRIPS, decSIM$fitted.values)
+```
+
