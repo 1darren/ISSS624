@@ -22,6 +22,7 @@ Because Rstudio regularly crashes with Quarto when I try to commit, here is a li
 ## Take-Home Exercises
 
 -   [Take-home Exercise 1](Take-home_Ex01/take_home_ex_01.html)
+-   [Take-home Exercise 2](Take-home_Ex02/take_home_ex_02.html)
 :::
 
 ::: callout-tip
